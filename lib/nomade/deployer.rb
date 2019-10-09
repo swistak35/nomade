@@ -5,7 +5,8 @@ module Nomade
       @evaluation_id = nil
       @deployment_id = nil
       @timeout = Time.now.utc + 60 * 9 # minutes
-      @http = Nomade::Http.new(nomad_endpoint)
+      @nomad_endpoint = nomad_endpoint
+      @http = Nomade::Http.new(@nomad_endpoint)
     end
 
     def deploy!
@@ -33,6 +34,7 @@ module Nomade
 
     def deploy
       Nomade.logger.info "Deploying #{@nomad_job.job_name} (#{@nomad_job.job_type}) with #{@nomad_job.image_name_and_version}"
+      Nomade.logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
 
       Nomade.logger.info "Checking cluster for connectivity and capacity.."
       @http.plan_job(@nomad_job)
