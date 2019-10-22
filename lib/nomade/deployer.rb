@@ -1,64 +1,65 @@
 module Nomade
   class Deployer
-    def initialize(nomad_endpoint, nomad_job)
+    def initialize(nomad_endpoint, nomad_job, opts = {})
       @nomad_job = nomad_job
       @evaluation_id = nil
       @deployment_id = nil
       @timeout = Time.now.utc + 60 * 9 # minutes
       @nomad_endpoint = nomad_endpoint
       @http = Nomade::Http.new(@nomad_endpoint)
+      @logger = opts.fetch(:logger, Nomade.logger)
     end
 
     def deploy!
       deploy
     rescue Nomade::NoModificationsError => e
-      Nomade.logger.warn "No modifications to make, exiting!"
+      @logger.warn "No modifications to make, exiting!"
       exit(0)
     rescue Nomade::GeneralError => e
-      Nomade.logger.warn e.message
-      Nomade.logger.warn "GeneralError hit, exiting!"
+      @logger.warn e.message
+      @logger.warn "GeneralError hit, exiting!"
       exit(1)
     rescue Nomade::PlanningError => e
-      Nomade.logger.warn "Couldn't make a plan, maybe a bad connection to Nomad server, exiting!"
+      @logger.warn "Couldn't make a plan, maybe a bad connection to Nomad server, exiting!"
       exit(2)
     rescue Nomade::AllocationFailedError => e
-      Nomade.logger.warn "Allocation failed with errors, exiting!"
+      @logger.warn "Allocation failed with errors, exiting!"
       exit(3)
     rescue Nomade::UnsupportedDeploymentMode => e
-      Nomade.logger.warn e.message
-      Nomade.logger.warn "Deployment failed with errors, exiting!"
+      @logger.warn e.message
+      @logger.warn "Deployment failed with errors, exiting!"
       exit(4)
     end
 
     private
 
     def deploy
-      Nomade.logger.info "Deploying #{@nomad_job.job_name} (#{@nomad_job.job_type}) with #{@nomad_job.image_name_and_version}"
-      Nomade.logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
+      @logger.info "Deploying #{@nomad_job.job_name} (#{@nomad_job.job_type}) with #{@nomad_job.image_name_and_version}"
+      @logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
 
-      Nomade.logger.info "Checking cluster for connectivity and capacity.."
+      @logger.info "Checking cluster for connectivity and capacity.."
       @http.plan_job(@nomad_job)
 
       @evaluation_id = if @http.check_if_job_exists?(@nomad_job)
-        Nomade.logger.info "Updating existing job"
+        @logger.info "Updating existing job"
         @http.update_job(@nomad_job)
       else
-        Nomade.logger.info "Creating new job"
+        @logger.info "Creating new job"
         @http.create_job(@nomad_job)
       end
 
-      Nomade.logger.info "EvaluationID: #{@evaluation_id}"
-      Nomade.logger.info "#{@evaluation_id} Waiting until evaluation is complete"
+      @logger.info "EvaluationID: #{@evaluation_id}"
+      @logger.info "#{@evaluation_id} Waiting until evaluation is complete"
       eval_status = nil
       while(eval_status != "complete") do
         evaluation = @http.evaluation_request(@evaluation_id)
         @deployment_id ||= evaluation["DeploymentID"]
         eval_status = evaluation["Status"]
-        Nomade.logger.info "."
+        @logger.info "."
         sleep(1)
       end
 
-      Nomade.logger.info "Waiting until allocations are complete"
+      @logger.info "Waiting until allocations are complete"
       case @nomad_job.job_type
       when "service"
         service_deploy
@@ -72,28 +73,28 @@ module Nomade
         allocation["TaskStates"].sort.each do |task_name, task_data|
           pretty_state = Nomade::Decorator.task_state_decorator(task_data["State"], task_data["Failed"])
 
-          Nomade.logger.info ""
-          Nomade.logger.info "#{allocation["ID"]} #{allocation["Name"]} #{task_name}: #{pretty_state}"
+          @logger.info ""
+          @logger.info "#{allocation["ID"]} #{allocation["Name"]} #{task_name}: #{pretty_state}"
           unless task_data["Failed"]
-            Nomade.logger.info "Task \"#{task_name}\" was succesfully run, skipping log-printing because it isn't relevant!"
+            @logger.info "Task \"#{task_name}\" was succesfully run, skipping log-printing because it isn't relevant!"
             next
           end
 
           stdout = @http.get_allocation_logs(allocation["ID"], task_name, "stdout")
           if stdout != ""
-            Nomade.logger.info
-            Nomade.logger.info "stdout:"
+            @logger.info
+            @logger.info "stdout:"
             stdout.lines do |logline|
-              Nomade.logger.info(logline.strip)
+              @logger.info(logline.strip)
             end
           end
 
           stderr = @http.get_allocation_logs(allocation["ID"], task_name, "stderr")
           if stderr != ""
-            Nomade.logger.info
-            Nomade.logger.info "stderr:"
+            @logger.info
+            @logger.info "stderr:"
             stderr.lines do |logline|
-              Nomade.logger.info(logline.strip)
+              @logger.info(logline.strip)
             end
           end
 
@@ -107,7 +108,7 @@ module Nomade
               "(#{dts})"
             end
 
-            Nomade.logger.info "[#{event_time}] #{event_type}: #{event_message} #{event_details}"
+            @logger.info "[#{event_time}] #{event_type}: #{event_message} #{event_details}"
           end
         end
       end
@@ -116,21 +117,21 @@ module Nomade
     end
 
     def service_deploy
-      Nomade.logger.info "Waiting until tasks are placed"
-      Nomade.logger.info ".. deploy timeout is #{@timeout}"
+      @logger.info "Waiting until tasks are placed"
+      @logger.info ".. deploy timeout is #{@timeout}"
 
       json = @http.deployment_request(@deployment_id)
-      Nomade.logger.info "#{json["JobID"]} version #{json["JobVersion"]}"
+      @logger.info "#{json["JobID"]} version #{json["JobVersion"]}"
 
       need_manual_promotion = json["TaskGroups"].values.any?{|tg| tg["DesiredCanaries"] > 0 && tg["AutoPromote"] == false}
       need_manual_rollback  = json["TaskGroups"].values.any?{|tg| tg["DesiredCanaries"] > 0 && tg["AutoRevert"] == false}
 
       manual_work_required = case [need_manual_promotion, need_manual_rollback]
       when [true, true]
-        Nomade.logger.info "Job needs manual promotion/rollback, we'll take care of that!"
+        @logger.info "Job needs manual promotion/rollback, we'll take care of that!"
         true
       when [false, false]
-        Nomade.logger.info "Job manages its own promotion/rollback, we will just monitor in a hands-off mode!"
+        @logger.info "Job manages its own promotion/rollback, we will just monitor in a hands-off mode!"
         false
       when [false, true]
         raise UnsupportedDeploymentMode.new("Unsupported deployment-mode, manual-promotion=#{need_manual_promotion}, manual-rollback=#{need_manual_rollback}")
@@ -155,37 +156,37 @@ module Nomade
           unhealthy_allocations = task_data["UnhealthyAllocs"]
 
           if manual_work_required
-            Nomade.logger.info "#{json["ID"]} #{task_name}: #{healthy_allocations}/#{desired_canaries}/#{desired_total} (Healthy/WantedCanaries/Total)"
+            @logger.info "#{json["ID"]} #{task_name}: #{healthy_allocations}/#{desired_canaries}/#{desired_total} (Healthy/WantedCanaries/Total)"
             announced_completed << task_name if healthy_allocations == desired_canaries
           else
-            Nomade.logger.info "#{json["ID"]} #{task_name}: #{healthy_allocations}/#{desired_total} (Healthy/Total)"
+            @logger.info "#{json["ID"]} #{task_name}: #{healthy_allocations}/#{desired_total} (Healthy/Total)"
             announced_completed << task_name if healthy_allocations == desired_total
           end
         end
 
         if manual_work_required
           if json["Status"] == "failed"
-            Nomade.logger.info "#{json["Status"]}: #{json["StatusDescription"]}"
+            @logger.info "#{json["Status"]}: #{json["StatusDescription"]}"
             succesful_deployment = false
           end
 
           if succesful_deployment == nil && Time.now.utc > @timeout
-            Nomade.logger.info "Timeout hit, rolling back deploy!"
+            @logger.info "Timeout hit, rolling back deploy!"
             @http.fail_deployment(@deployment_id)
             succesful_deployment = false
           end
 
           if succesful_deployment == nil && json["TaskGroups"].values.all?{|tg| tg["HealthyAllocs"] >= tg["DesiredCanaries"]}
             if !promoted
-              Nomade.logger.info "Promoting #{@deployment_id} (version #{json["JobVersion"]})"
+              @logger.info "Promoting #{@deployment_id} (version #{json["JobVersion"]})"
               @http.promote_deployment(@deployment_id)
               promoted = true
-              Nomade.logger.info ".. promoted!"
+              @logger.info ".. promoted!"
             else
               if json["Status"] == "successful"
                 succesful_deployment = true
               else
-                Nomade.logger.info "Waiting for promotion to complete #{@deployment_id} (version #{json["JobVersion"]})"
+                @logger.info "Waiting for promotion to complete #{@deployment_id} (version #{json["JobVersion"]})"
               end
             end
           end
@@ -194,10 +195,10 @@ module Nomade
           when "running"
             # no-op
           when "failed"
-            Nomade.logger.info "#{json["Status"]}: #{json["StatusDescription"]}"
+            @logger.info "#{json["Status"]}: #{json["StatusDescription"]}"
             succesful_deployment = false
           when "successful"
-            Nomade.logger.info "#{json["Status"]}: #{json["StatusDescription"]}"
+            @logger.info "#{json["Status"]}: #{json["StatusDescription"]}"
             succesful_deployment = true
           end
         end
@@ -206,11 +207,11 @@ module Nomade
       end
 
       if succesful_deployment
-        Nomade.logger.info ""
-        Nomade.logger.info "#{@deployment_id} (version #{json["JobVersion"]}) was succesfully deployed!"
+        @logger.info ""
+        @logger.info "#{@deployment_id} (version #{json["JobVersion"]}) was succesfully deployed!"
       else
-        Nomade.logger.warn ""
-        Nomade.logger.warn "#{@deployment_id} (version #{json["JobVersion"]}) deployment _failed_!"
+        @logger.warn ""
+        @logger.warn "#{@deployment_id} (version #{json["JobVersion"]}) deployment _failed_!"
       end
     end
 
@@ -227,7 +228,7 @@ module Nomade
             pretty_state = Nomade::Decorator.task_state_decorator(task_data["State"], task_data["Failed"])
 
             unless announced_dead.include?(full_task_address)
-              Nomade.logger.info "#{allocation["ID"]} #{allocation["Name"]} #{task_name}: #{pretty_state}"
+              @logger.info "#{allocation["ID"]} #{allocation["Name"]} #{task_name}: #{pretty_state}"
 
               if task_data["State"] == "dead"
                 announced_dead << full_task_address
@@ -246,30 +247,30 @@ module Nomade
             raise Nomade::AllocationFailedError.new(@evaluation_id, allocations)
           end
 
-          Nomade.logger.info "Deployment complete"
+          @logger.info "Deployment complete"
 
           allocations.each do |allocation|
             allocation["TaskStates"].sort.each do |task_name, task_data|
               pretty_state = Nomade::Decorator.task_state_decorator(task_data["State"], task_data["Failed"])
 
-              Nomade.logger.info ""
-              Nomade.logger.info "#{allocation["ID"]} #{allocation["Name"]} #{task_name}: #{pretty_state}"
+              @logger.info ""
+              @logger.info "#{allocation["ID"]} #{allocation["Name"]} #{task_name}: #{pretty_state}"
 
               stdout = @http.get_allocation_logs(allocation["ID"], task_name, "stdout")
               if stdout != ""
-                Nomade.logger.info
-                Nomade.logger.info "stdout:"
+                @logger.info
+                @logger.info "stdout:"
                 stdout.lines do |logline|
-                  Nomade.logger.info(logline.strip)
+                  @logger.info(logline.strip)
                 end
               end
 
               stderr = @http.get_allocation_logs(allocation["ID"], task_name, "stderr")
               if stderr != ""
-                Nomade.logger.info
-                Nomade.logger.info "stderr:"
+                @logger.info
+                @logger.info "stderr:"
                 stderr.lines do |logline|
-                  Nomade.logger.info(logline.strip)
+                  @logger.info(logline.strip)
                 end
               end
             end
