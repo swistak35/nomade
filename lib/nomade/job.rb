@@ -5,9 +5,9 @@ module Nomade
   class Job
     class FormattingError < StandardError; end
 
-    def initialize(template_file, image_full_name, environment_variables = {})
+    def initialize(template_file, image_full_name, template_variables = {})
       @image_full_name = image_full_name
-      @environment_variables = environment_variables
+      @template_variables = template_variables
 
       # image_full_name should be in the form of:
       # redis:4.0.1
@@ -52,8 +52,8 @@ module Nomade
       image_name_and_version.split(":").last
     end
 
-    def environment_variables
-      @environment_variables
+    def template_variables
+      @template_variables
     end
 
     private
