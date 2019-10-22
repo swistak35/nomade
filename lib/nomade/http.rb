@@ -16,8 +16,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/jobs#{search_prefix}")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Get.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -37,8 +39,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/evaluation/#{evaluation_id}")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Get.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -58,8 +62,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/evaluation/#{evaluation_id}/allocations")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Get.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -79,8 +85,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/deployment/#{deployment_id}")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Get.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -105,8 +113,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/jobs")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -126,8 +136,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -147,8 +159,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/deployment/promote/#{deployment_id}")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -171,8 +185,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/deployment/fail/#{deployment_id}")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
@@ -191,8 +207,10 @@ module Nomade
       uri = URI("#{@nomad_endpoint}/v1/client/fs/logs/#{allocation_id}?task=#{task_name}&type=#{logtype}&plain=true&origin=end")
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
 
       req = Net::HTTP::Get.new(uri)
       res = http.request(req)
