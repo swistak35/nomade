@@ -12,7 +12,8 @@ module Nomade
       # image_full_name should be in the form of:
       # redis:4.0.1
       # kaspergrubbe/secretimage:latest
-      unless @image_full_name.match(/\A[a-zA-Z0-9\/]+\:[a-zA-Z0-9\.\-\_]+\z/)
+      # billetto/billetto-rails:4.2.24
+      unless @image_full_name.match(/\A[a-zA-Z0-9\/\-\_]+\:[a-zA-Z0-9\.\-\_]+\z/)
         raise Nomade::Job::FormattingError.new("Image-format wrong: #{@image_full_name}")
       end
 
