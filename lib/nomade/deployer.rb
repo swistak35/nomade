@@ -178,6 +178,10 @@ module Nomade
 
           if succesful_deployment == nil && json["TaskGroups"].values.all?{|tg| tg["HealthyAllocs"] >= tg["DesiredCanaries"]}
             if !promoted
+              random_linger = rand(60..185)
+              @logger.info "Lingering around for #{random_linger} seconds before deployment.."
+              sleep(random_linger)
+
               @logger.info "Promoting #{@deployment_id} (version #{json["JobVersion"]})"
               @http.promote_deployment(@deployment_id)
               promoted = true
