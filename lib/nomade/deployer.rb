@@ -4,7 +4,7 @@ module Nomade
       @nomad_job = nomad_job
       @evaluation_id = nil
       @deployment_id = nil
-      @timeout = Time.now.utc + 60 * 9 # minutes
+      @timeout = Time.now.utc + 60 * 3 # minutes
       @nomad_endpoint = nomad_endpoint
       @http = Nomade::Http.new(@nomad_endpoint)
       @logger = opts.fetch(:logger, Nomade.logger)
@@ -178,7 +178,7 @@ module Nomade
 
           if succesful_deployment == nil && json["TaskGroups"].values.all?{|tg| tg["HealthyAllocs"] >= tg["DesiredCanaries"]}
             if !promoted
-              random_linger = rand(60..185)
+              random_linger = rand(8..28)
               @logger.info "Lingering around for #{random_linger} seconds before deployment.."
               sleep(random_linger)
 
