@@ -4,7 +4,7 @@ Gem::Specification.new do |s|
   s.email = "nomade@kaspergrubbe.com"
   s.license = "MIT"
   s.homepage = "https://billetto.com"
-  s.version = "0.0.3"
+  s.version = "0.0.4"
   s.summary = "Gem that deploys nomad jobs"
   s.files = [
     "lib/nomade.rb",

@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+N/A
+
+## [0.0.4] - 29/1/2020
+
 ### Changed
 - Lower the amount of seconds we're lingering before promotion.
 - Lower the default timeout from 9 minutes to 3 minutes.
