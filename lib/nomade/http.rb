@@ -222,8 +222,40 @@ module Nomade
       raise
     end
 
+    def capacity_plan_job(nomad_job)
+      uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}/plan")
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
+
+      req = Net::HTTP::Post.new(uri)
+      req.add_field "Content-Type", "application/json"
+      req.body = nomad_job.configuration(:json)
+
+      res = http.request(req)
+      raise if res.code != "200"
+      raise if res.content_type != "application/json"
+
+      plan_output = JSON.parse(res.body)
+
+      if plan_output["FailedTGAllocs"]
+        raise Nomade::FailedTaskGroupPlan.new("Failed to plan groups: #{plan_output["FailedTGAllocs"].keys.join(",")}")
+      end
+
+      true
+    rescue Nomade::FailedTaskGroupPlan => e
+      raise
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
     def plan_job(nomad_job)
       rendered_template = nomad_job.configuration(:hcl)
+
       #   0: No allocations created or destroyed. Nothing to do.
       #   1: Allocations created or destroyed.
       # 255: Error determining plan results. Nothing to do.
