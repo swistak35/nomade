@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 N/A
 
+## [0.0.5] - 26/2/2020
+
+### Changed
+- Now we run a capacity planning check before we deploy.
+
 ## [0.0.4] - 29/1/2020
 
 ### Changed
