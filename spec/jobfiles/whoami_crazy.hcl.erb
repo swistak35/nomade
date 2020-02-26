@@ -1,0 +1,97 @@
+job "whoami-web" {
+  datacenters = ["<%= template_variables[:datacenter] %>"]
+  type = "service"
+
+  # Disabling rescheduleling for now to mitigate:
+  # https://github.com/hashicorp/nomad/issues/6936
+  reschedule {
+    attempts  = 0
+    unlimited = false
+  }
+
+  update {
+    max_parallel = 3
+    min_healthy_time = "10s"
+    healthy_deadline = "5m"
+    progress_deadline = "10m"
+    auto_revert = false
+    auto_promote = false
+    canary = 3
+  }
+
+  migrate {
+    max_parallel = 3
+    health_check = "checks"
+    min_healthy_time = "10s"
+    healthy_deadline = "5m"
+  }
+
+  group "group" {
+    count = 3
+
+    restart {
+      attempts = 0
+      interval = "30m"
+      delay = "15s"
+      mode = "fail"
+    }
+
+    ephemeral_disk {
+      size = 300
+    }
+
+    task "rails" {
+      driver = "docker"
+
+      env {
+<% template_variables[:environment_variables].each do |ek, ev| -%>
+        <%= ek %> = "<%= ev %>"
+<% end -%>
+      }
+
+      config {
+        image = "<%= image_name_and_version %>"
+
+        port_map {
+          web = 8080
+        }
+
+<% if template_variables[:network_mode] -%>
+        network_mode = "<%= template_variables[:network_mode] %>"
+<% end -%>
+        dns_servers = ["<%= template_variables[:dns] %>"]
+      }
+
+      resources {
+        cpu    = 512 # MHz
+        memory = 50000 # MB
+        network {
+          mbits = 50
+          port "web" {}
+        }
+      }
+
+      service {
+        name = "whoami-web"
+        tags = []
+        port = "web"
+<% if template_variables[:address_mode] -%>
+        address_mode = "<%= template_variables[:address_mode] %>"
+<% end -%>
+
+        check {
+<% if template_variables[:address_mode] -%>
+          address_mode = "<%= template_variables[:address_mode] %>"
+<% end -%>
+          name     = "whoami-web healthcheck"
+          type     = "http"
+          protocol = "http"
+          path     = "/"
+          interval = "10s"
+          timeout  = "3s"
+        }
+      }
+    }
+
+  }
+}
