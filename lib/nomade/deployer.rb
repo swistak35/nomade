@@ -207,7 +207,7 @@ module Nomade
           end
         end
 
-        sleep 10 if succesful_deployment == nil
+        sleep 5 if succesful_deployment == nil
       end
 
       if succesful_deployment
