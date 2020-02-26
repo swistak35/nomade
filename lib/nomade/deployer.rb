@@ -8,30 +8,52 @@ module Nomade
       @nomad_endpoint = nomad_endpoint
       @http = Nomade::Http.new(@nomad_endpoint)
       @logger = opts.fetch(:logger, Nomade.logger)
+
+      @on_success = opts.fetch(:on_success, [])
+      @on_failure = opts.fetch(:on_failure, [])
+      @on_failure << method(:print_errors)
     end
 
     def deploy!
+      plan
       deploy
     rescue Nomade::NoModificationsError => e
-      @logger.warn "No modifications to make, exiting!"
+      call_failure_handlers ["No modifications to make, exiting!"]
       exit(0)
     rescue Nomade::GeneralError => e
-      @logger.warn e.message
-      @logger.warn "GeneralError hit, exiting!"
+      call_failure_handlers [e.message, "GeneralError hit, exiting!"]
       exit(1)
     rescue Nomade::PlanningError => e
-      @logger.warn "Couldn't make a plan, maybe a bad connection to Nomad server, exiting!"
+      call_failure_handlers ["Couldn't make a plan, maybe a bad connection to Nomad server, exiting!"]
       exit(2)
     rescue Nomade::AllocationFailedError => e
-      @logger.warn "Allocation failed with errors, exiting!"
+      call_failure_handlers ["Allocation failed with errors, exiting!"]
       exit(3)
     rescue Nomade::UnsupportedDeploymentMode => e
-      @logger.warn e.message
-      @logger.warn "Deployment failed with errors, exiting!"
+      call_failure_handlers [e.message, "Deployment failed with errors, exiting!"]
       exit(4)
+    rescue Nomade::FailedTaskGroupPlan => e
+      call_failure_handlers [e.message, "Couldn't plan correctly, exiting!"]
+      exit(5)
     end
 
     private
+
+    def call_failure_handlers(messages)
+      @on_failure.each do |failure_handler|
+        failure_handler.call(messages)
+      end
+    end
+
+    def print_errors(errors)
+      errors.each do |error|
+        @logger.warn(error)
+      end
+    end
+
+    def plan
+      @http.capacity_plan_job(@nomad_job)
+    end
 
     def deploy
       @logger.info "Deploying #{@nomad_job.job_name} (#{@nomad_job.job_type}) with #{@nomad_job.image_name_and_version}"
