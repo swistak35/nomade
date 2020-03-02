@@ -37,6 +37,10 @@ module Nomade
       exit(5)
     end
 
+    def stop!(purge = false)
+      @http.stop_job(@nomad_job, purge)
+    end
+
     private
 
     def call_failure_handlers(messages)

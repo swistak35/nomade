@@ -155,6 +155,32 @@ module Nomade
       raise
     end
 
+    def stop_job(nomad_job, purge = false)
+      uri = if purge
+        URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}?purge=true")
+      else
+        URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}")
+      end
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
+
+      req = Net::HTTP::Delete.new(uri)
+      req.add_field "Content-Type", "application/json"
+
+      res = http.request(req)
+      raise if res.code != "200"
+      raise if res.content_type != "application/json"
+
+      return JSON.parse(res.body)["EvalID"]
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
     def promote_deployment(deployment_id)
       uri = URI("#{@nomad_endpoint}/v1/deployment/promote/#{deployment_id}")
 
