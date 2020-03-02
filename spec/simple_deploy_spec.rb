@@ -43,6 +43,9 @@ RSpec.describe Nomade do
     expect { Nomade::Deployer.new(nomad_endpoint, nomad_job_web, logger: $logger).deploy! }.to raise_error(SystemExit) do |error|
       expect(error.status).to eq(5)
     end
+
+    # Cleanup
+    Nomade::Deployer.new(nomad_endpoint, nomad_job_web, logger: $logger).stop!
   end
 
 end
