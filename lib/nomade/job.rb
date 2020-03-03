@@ -1,25 +1,10 @@
-require "erb"
-require "json"
-
 module Nomade
   class Job
-    class FormattingError < StandardError; end
-
-    def initialize(template_file, image_full_name, template_variables = {})
+    def initialize(image_full_name, config_hcl, config_json, config_hash)
       @image_full_name = image_full_name
-      @template_variables = template_variables
-
-      # image_full_name should be in the form of:
-      # redis:4.0.1
-      # kaspergrubbe/secretimage:latest
-      # billetto/billetto-rails:4.2.24
-      unless @image_full_name.match(/\A[a-zA-Z0-9\/\-\_]+\:[a-zA-Z0-9\.\-\_]+\z/)
-        raise Nomade::Job::FormattingError.new("Image-format wrong: #{@image_full_name}")
-      end
-
-      @config_hcl = render_erb(template_file)
-      @config_json = convert_job_hcl_to_json(@config_hcl)
-      @config_hash = JSON.parse(@config_json)
+      @config_hcl = config_hcl
+      @config_json = config_json
+      @config_hash = config_hash
     end
 
     def configuration(format)
@@ -28,17 +13,19 @@ module Nomade
         @config_hcl
       when :json
         @config_json
+      when :hash
+        @config_hash
       else
         @config_hash
       end
     end
 
     def job_name
-      @config_hash["Job"]["ID"]
+      @config_hash["ID"]
     end
 
     def job_type
-      @config_hash["Job"]["Type"]
+      @config_hash["Type"]
     end
 
     def image_name_and_version
@@ -53,25 +40,5 @@ module Nomade
       image_name_and_version.split(":").last
     end
 
-    def template_variables
-      @template_variables
-    end
-
-    private
-
-    def render_erb(erb_template)
-      file = File.open(erb_template).read
-      rendered = ERB.new(file, nil, '-').result(binding)
-
-      rendered
-    end
-
-    def convert_job_hcl_to_json(rendered_template)
-      exit_status, stdout, stderr = Shell.exec("nomad job run -output -no-color -", rendered_template)
-
-      JSON.pretty_generate({
-        "Job": JSON.parse(stdout)["Job"],
-      })
-    end
   end
 end
