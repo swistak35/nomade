@@ -10,9 +10,13 @@ module Nomade
 
       @timeout = Time.now.utc + 60 * 3 # minutes
 
-      @on_success = opts.fetch(:on_success, [])
-      @on_failure = opts.fetch(:on_failure, [])
-      @on_failure << method(:print_errors)
+      @hooks = {
+        Nomade::Hooks::DEPLOY_RUNNING => [],
+        Nomade::Hooks::DEPLOY_FINISHED => [],
+        Nomade::Hooks::DEPLOY_FAILED => [],
+      }
+      # add_hook(Nomade::Hooks::DEPLOY_FAILED, )
+      # method(:print_errors)
 
       self
     end
@@ -23,6 +27,25 @@ module Nomade
       @deployment_id = nil
 
       self
+    end
+
+    def add_hook(hook, hook_method)
+      case hook
+      when Nomade::Hooks::DEPLOY_RUNNING
+        @hooks[Nomade::Hooks::DEPLOY_RUNNING] << hook_method
+      when Nomade::Hooks::DEPLOY_FINISHED
+        @hooks[Nomade::Hooks::DEPLOY_FINISHED] << hook_method
+      when Nomade::Hooks::DEPLOY_FAILED
+        @hooks[Nomade::Hooks::DEPLOY_FAILED] << hook_method
+      else
+        raise "#{hook} not supported!"
+      end
+    end
+
+    def run_hooks(hook, job, messages)
+      @hooks[hook].each do |hook_method|
+        hook_method.call(hook, job, messages)
+      end
     end
 
     def deploy!
@@ -52,9 +75,12 @@ module Nomade
     private
 
     def call_failure_handlers(messages)
-      @on_failure.each do |failure_handler|
-        failure_handler.call(messages)
+      messages.each do |message|
+        $logger.info message
       end
+      # @on_failure.each do |failure_handler|
+      #   failure_handler.call(messages)
+      # end
     end
 
     def print_errors(errors)
