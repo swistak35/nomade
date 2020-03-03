@@ -91,3 +91,41 @@ RSpec.configure do |config|
   # as the one that triggered the failure.
   Kernel.srand config.seed
 end
+
+$logger = Yell.new do |l|
+  l.adapter STDOUT, level: [:info, :warn]
+  l.adapter STDERR, level: [:error, :fatal]
+end
+
+def job_versions(endpoint, nomad_job_name)
+  uri = URI("#{endpoint}/v1/job/#{nomad_job_name}/versions")
+
+  http = Net::HTTP.new(uri.host, uri.port)
+  if endpoint.include?("https://")
+    http.use_ssl = true
+    http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+  end
+
+  req = Net::HTTP::Post.new(uri)
+
+  res = http.request(req)
+  raise if res.code != "200"
+  raise if res.content_type != "application/json"
+
+  JSON.parse(res.body)
+rescue StandardError => e
+  Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+  raise
+end
+
+def default_job_vars
+  Proc.new do
+    {
+      datacenter: "eu-test-1",
+      dns: "172.17.0.1",
+      environment_variables: {
+        "DEPLOY_TIME"  => Time.now.utc.to_s,
+      }
+    }
+  end
+end
