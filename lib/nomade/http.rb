@@ -251,7 +251,22 @@ module Nomade
     end
 
     def capacity_plan_job(nomad_job)
-      uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}/plan")
+      plan_output = plan_job2(nomad_job)
+
+      if plan_output["FailedTGAllocs"]
+        raise Nomade::FailedTaskGroupPlan.new("Failed to plan groups: #{plan_output["FailedTGAllocs"].keys.join(",")}")
+      end
+
+      true
+    rescue Nomade::FailedTaskGroupPlan => e
+      raise
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
+    def convert_hcl_to_json(job_hcl)
+      uri = URI("#{@nomad_endpoint}/v1/jobs/parse")
 
       http = Net::HTTP.new(uri.host, uri.port)
       if @nomad_endpoint.include?("https://")
@@ -271,15 +286,7 @@ module Nomade
       raise if res.code != "200"
       raise if res.content_type != "application/json"
 
-      plan_output = JSON.parse(res.body)
-
-      if plan_output["FailedTGAllocs"]
-        raise Nomade::FailedTaskGroupPlan.new("Failed to plan groups: #{plan_output["FailedTGAllocs"].keys.join(",")}")
-      end
-
-      true
-    rescue Nomade::FailedTaskGroupPlan => e
-      raise
+      res.body
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
@@ -306,5 +313,29 @@ module Nomade
 
       true
     end
+
+    def plan_job2(nomad_job)
+      uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}/plan")
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
+
+      req = Net::HTTP::Post.new(uri)
+      req.add_field "Content-Type", "application/json"
+      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
+
+      res = http.request(req)
+      raise if res.code != "200"
+      raise if res.content_type != "application/json"
+
+      JSON.parse(res.body)
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
   end
 end
