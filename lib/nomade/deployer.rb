@@ -1,22 +1,33 @@
 module Nomade
   class Deployer
-    def initialize(nomad_endpoint, nomad_job, opts = {})
-      @nomad_job = nomad_job
-      @evaluation_id = nil
-      @deployment_id = nil
-      @timeout = Time.now.utc + 60 * 3 # minutes
+    attr_reader :nomad_job
+
+    def initialize(nomad_endpoint, opts = {})
       @nomad_endpoint = nomad_endpoint
       @http = Nomade::Http.new(@nomad_endpoint)
+      @job_builder = Nomade::JobBuilder.new(@http)
       @logger = opts.fetch(:logger, Nomade.logger)
+
+      @timeout = Time.now.utc + 60 * 3 # minutes
 
       @on_success = opts.fetch(:on_success, [])
       @on_failure = opts.fetch(:on_failure, [])
       @on_failure << method(:print_errors)
+
+      self
+    end
+
+    def init_job(template_file, image_full_name, template_variables = {})
+      @nomad_job = @job_builder.build(template_file, image_full_name, template_variables)
+      @evaluation_id = nil
+      @deployment_id = nil
+
+      self
     end
 
     def deploy!
-      plan
-      deploy
+      _plan
+      _deploy
     rescue Nomade::NoModificationsError => e
       call_failure_handlers ["No modifications to make, exiting!"]
       exit(0)
@@ -55,11 +66,11 @@ module Nomade
       end
     end
 
-    def plan
+    def _plan
       @http.capacity_plan_job(@nomad_job)
     end
 
-    def deploy
+    def _deploy
       @logger.info "Deploying #{@nomad_job.job_name} (#{@nomad_job.job_type}) with #{@nomad_job.image_name_and_version}"
       @logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
 
