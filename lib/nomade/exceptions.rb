@@ -3,7 +3,6 @@ module Nomade
 
   class GeneralError < StandardError; end
   class NoModificationsError < StandardError; end
-  class PlanningError < StandardError; end
 
   class AllocationFailedError < StandardError
     def initialize(evaluation_id, allocations)

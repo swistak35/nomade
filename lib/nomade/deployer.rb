@@ -34,9 +34,6 @@ module Nomade
     rescue Nomade::GeneralError => e
       call_failure_handlers [e.message, "GeneralError hit, exiting!"]
       exit(1)
-    rescue Nomade::PlanningError => e
-      call_failure_handlers ["Couldn't make a plan, maybe a bad connection to Nomad server, exiting!"]
-      exit(2)
     rescue Nomade::AllocationFailedError => e
       call_failure_handlers ["Allocation failed with errors, exiting!"]
       exit(3)
@@ -75,7 +72,19 @@ module Nomade
       @logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
 
       @logger.info "Checking cluster for connectivity and capacity.."
-      @http.plan_job(@nomad_job)
+      plan_data = @http.plan_job2(@nomad_job)
+
+      sum_of_changes = plan_data["Annotations"]["DesiredTGUpdates"].map { |group_name, task_group_updates|
+        task_group_updates["Stop"] +
+        task_group_updates["Place"] +
+        task_group_updates["Migrate"] +
+        task_group_updates["DestructiveUpdate"] +
+        task_group_updates["Canary"]
+      }.sum
+
+      if sum_of_changes == 0
+        raise Nomade::NoModificationsError.new
+      end
 
       @evaluation_id = if @http.check_if_job_exists?(@nomad_job)
         @logger.info "Updating existing job"
