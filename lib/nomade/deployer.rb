@@ -72,7 +72,7 @@ module Nomade
       @logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
 
       @logger.info "Checking cluster for connectivity and capacity.."
-      plan_data = @http.plan_job2(@nomad_job)
+      plan_data = @http.plan_job(@nomad_job)
 
       sum_of_changes = plan_data["Annotations"]["DesiredTGUpdates"].map { |group_name, task_group_updates|
         task_group_updates["Stop"] +

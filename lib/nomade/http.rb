@@ -251,7 +251,7 @@ module Nomade
     end
 
     def capacity_plan_job(nomad_job)
-      plan_output = plan_job2(nomad_job)
+      plan_output = plan_job(nomad_job)
 
       if plan_output["FailedTGAllocs"]
         raise Nomade::FailedTaskGroupPlan.new("Failed to plan groups: #{plan_output["FailedTGAllocs"].keys.join(",")}")
