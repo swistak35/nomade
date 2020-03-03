@@ -1,4 +1,6 @@
 module Nomade
+  class FormattingError < StandardError; end
+
   class GeneralError < StandardError; end
   class NoModificationsError < StandardError; end
   class PlanningError < StandardError; end
