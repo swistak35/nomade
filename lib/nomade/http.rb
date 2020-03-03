@@ -293,28 +293,6 @@ module Nomade
     end
 
     def plan_job(nomad_job)
-      rendered_template = nomad_job.configuration(:hcl)
-
-      #   0: No allocations created or destroyed. Nothing to do.
-      #   1: Allocations created or destroyed.
-      # 255: Error determining plan results. Nothing to do.
-      allowed_exit_codes = [0, 1, 255]
-
-      exit_status, stdout, stderr = Shell.exec("NOMAD_ADDR=#{@nomad_endpoint} nomad job plan -diff -verbose -no-color -", rendered_template, allowed_exit_codes)
-
-      case exit_status
-      when 0
-        raise Nomade::NoModificationsError.new
-      when 1
-        # no-op
-      when 255
-        raise Nomade::PlanningError.new
-      end
-
-      true
-    end
-
-    def plan_job2(nomad_job)
       uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}/plan")
 
       http = Net::HTTP.new(uri.host, uri.port)
