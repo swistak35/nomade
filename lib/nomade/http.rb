@@ -120,9 +120,10 @@ module Nomade
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
-      req.body = nomad_job.configuration(:json)
+      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
 
       res = http.request(req)
+
       raise if res.code != "200"
       raise if res.content_type != "application/json"
 
@@ -143,9 +144,10 @@ module Nomade
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
-      req.body = nomad_job.configuration(:json)
+      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
 
       res = http.request(req)
+
       raise if res.code != "200"
       raise if res.content_type != "application/json"
 
@@ -259,7 +261,11 @@ module Nomade
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
-      req.body = nomad_job.configuration(:json)
+
+      req.body = JSON.generate({
+        "JobHCL": job_hcl,
+        "Canonicalize": false,
+      })
 
       res = http.request(req)
       raise if res.code != "200"
