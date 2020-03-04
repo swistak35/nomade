@@ -34,7 +34,14 @@ module Nomade
       local_binding.local_variable_set(:template_variables, template_variables)
       rendered = ERB.new(file, nil, '-').result(local_binding)
 
-      rendered
+      # https://github.com/ruby/ruby/commit/3406c5d
+      rendered = if ERB.instance_method(:initialize).parameters.assoc(:key) # Ruby 2.6+
+        ERB.new(file, trim_mode: '-')
+      else
+        ERB.new(file, nil, '-')
+      end
+
+      rendered.result(local_binding)
     end
   end
 end
