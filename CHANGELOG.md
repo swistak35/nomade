@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+- Added hook-functionality so we can print extra information or ping external services.
+- Fixed a case where we didn't mark a rollback as a failure.
 
 ## [0.0.5] - 26/2/2020
 
