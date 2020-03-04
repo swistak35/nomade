@@ -13,92 +13,34 @@ module Nomade
       else
         ""
       end
-      uri = URI("#{@nomad_endpoint}/v1/jobs#{search_prefix}")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Get.new(uri)
-      req.add_field "Content-Type", "application/json"
-
-      res = http.request(req)
-
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      return JSON.parse(res.body)
+      path = "/v1/jobs#{search_prefix}"
+      res_body = _request(:get, path, total_retries: 3)
+      return JSON.parse(res_body)
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
     end
 
     def evaluation_request(evaluation_id)
-      uri = URI("#{@nomad_endpoint}/v1/evaluation/#{evaluation_id}")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Get.new(uri)
-      req.add_field "Content-Type", "application/json"
-
-      res = http.request(req)
-
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      return JSON.parse(res.body)
+      res_body = _request(:get, "/v1/evaluation/#{evaluation_id}", total_retries: 3)
+      return JSON.parse(res_body)
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
     end
 
     def allocations_from_evaluation_request(evaluation_id)
-      uri = URI("#{@nomad_endpoint}/v1/evaluation/#{evaluation_id}/allocations")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Get.new(uri)
-      req.add_field "Content-Type", "application/json"
-
-      res = http.request(req)
-
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      return JSON.parse(res.body)
+      res_body = _request(:get, "/v1/evaluation/#{evaluation_id}/allocations", total_retries: 3)
+      return JSON.parse(res_body)
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
     end
 
     def deployment_request(deployment_id)
-      uri = URI("#{@nomad_endpoint}/v1/deployment/#{deployment_id}")
+      res_body = _request(:get, "/v1/deployment/#{deployment_id}", total_retries: 3)
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Get.new(uri)
-      req.add_field "Content-Type", "application/json"
-
-      res = http.request(req)
-
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      return JSON.parse(res.body)
+      return JSON.parse(res_body)
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
@@ -110,98 +52,45 @@ module Nomade
     end
 
     def create_job(nomad_job)
-      uri = URI("#{@nomad_endpoint}/v1/jobs")
+      req_body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
+      res_body = _request(:post, "/v1/jobs", body: req_body)
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Post.new(uri)
-      req.add_field "Content-Type", "application/json"
-      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
-
-      res = http.request(req)
-
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      return JSON.parse(res.body)["EvalID"]
+      return JSON.parse(res_body)["EvalID"]
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
     end
 
     def update_job(nomad_job)
-      uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}")
+      req_body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
+      res_body = _request(:post, "/v1/job/#{nomad_job.job_name}", body: req_body)
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Post.new(uri)
-      req.add_field "Content-Type", "application/json"
-      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
-
-      res = http.request(req)
-
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      return JSON.parse(res.body)["EvalID"]
+      return JSON.parse(res_body)["EvalID"]
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
     end
 
     def stop_job(nomad_job, purge = false)
-      uri = if purge
-        URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}?purge=true")
+      path = if purge
+        "/v1/job/#{nomad_job.job_name}?purge=true"
       else
-        URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}")
+        "/v1/job/#{nomad_job.job_name}"
       end
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Delete.new(uri)
-      req.add_field "Content-Type", "application/json"
-
-      res = http.request(req)
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      return JSON.parse(res.body)["EvalID"]
+      res_body = _request(:delete, path)
+      return JSON.parse(res_body)["EvalID"]
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
     end
 
     def promote_deployment(deployment_id)
-      uri = URI("#{@nomad_endpoint}/v1/deployment/promote/#{deployment_id}")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Post.new(uri)
-      req.add_field "Content-Type", "application/json"
-      req.body = {
+      req_body = {
         "DeploymentID" => deployment_id,
         "All" => true,
       }.to_json
-
-      res = http.request(req)
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
+      res_body = _request(:post, "/v1/deployment/promote/#{deployment_id}", body: req_body)
 
       return true
     rescue StandardError => e
@@ -210,21 +99,7 @@ module Nomade
     end
 
     def fail_deployment(deployment_id)
-      uri = URI("#{@nomad_endpoint}/v1/deployment/fail/#{deployment_id}")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Post.new(uri)
-      req.add_field "Content-Type", "application/json"
-
-      res = http.request(req)
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
+      res_body = _request(:post, "/v1/deployment/fail/#{deployment_id}")
       return true
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
@@ -232,19 +107,8 @@ module Nomade
     end
 
     def get_allocation_logs(allocation_id, task_name, logtype)
-      uri = URI("#{@nomad_endpoint}/v1/client/fs/logs/#{allocation_id}?task=#{task_name}&type=#{logtype}&plain=true&origin=end")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Get.new(uri)
-      res = http.request(req)
-      raise if res.code != "200"
-
-      return res.body.gsub(/\e\[\d+m/, '')
+      res_body = _request(:get, "/v1/client/fs/logs/#{allocation_id}?task=#{task_name}&type=#{logtype}&plain=true&origin=end", total_retries: 3)
+      return res_body.gsub(/\e\[\d+m/, '')
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
@@ -266,34 +130,31 @@ module Nomade
     end
 
     def convert_hcl_to_json(job_hcl)
-      uri = URI("#{@nomad_endpoint}/v1/jobs/parse")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Post.new(uri)
-      req.add_field "Content-Type", "application/json"
-
-      req.body = JSON.generate({
+      req_body = JSON.generate({
         "JobHCL": job_hcl,
         "Canonicalize": false,
       })
-
-      res = http.request(req)
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      res.body
+      res_body = _request(:post, "/v1/jobs/parse", body: req_body, total_retries: 3)
+      res_body
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
       raise
     end
 
     def plan_job(nomad_job)
-      uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}/plan")
+      req_body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
+      res_body = _request(:post, "/v1/job/#{nomad_job.job_name}/plan", body: req_body)
+
+      JSON.parse(res_body)
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
+    private
+
+    def _request(request_type, path, body: nil, total_retries: 0)
+      uri = URI("#{@nomad_endpoint}#{path}")
 
       http = Net::HTTP.new(uri.host, uri.port)
       if @nomad_endpoint.include?("https://")
@@ -301,19 +162,38 @@ module Nomade
         http.verify_mode = OpenSSL::SSL::VERIFY_PEER
       end
 
-      req = Net::HTTP::Post.new(uri)
+      req = case request_type
+      when :get
+        Net::HTTP::Get.new(uri)
+      when :post
+        Net::HTTP::Post.new(uri)
+      when :delete
+        Net::HTTP::Delete.new(uri)
+      else
+        raise "#{request_type} not supported"
+      end
       req.add_field "Content-Type", "application/json"
-      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
+      req.body = body if body
+
+      begin
+        retries ||= 0
+        res = http.request(req)
+      rescue Timeout::Error, Errno::ETIMEDOUT, Errno::EINVAL, Errno::ECONNRESET, EOFError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError, SocketError
+        if retries < total_retries
+          retries += 1
+          sleep 1
+          retry
+        else
+          raise
+        end
+      end
 
       res = http.request(req)
 
       raise if res.code != "200"
       raise if res.content_type != "application/json"
 
-      JSON.parse(res.body)
-    rescue StandardError => e
-      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
-      raise
+      res.body
     end
 
   end
