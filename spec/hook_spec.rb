@@ -183,6 +183,7 @@ RSpec.describe "Deploy hooks" do
         $failure_proc_arr << [hook_type, nomad_job, messages]
       }
 
+      # Creating new job
       expect {
         deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start)
@@ -201,6 +202,18 @@ RSpec.describe "Deploy hooks" do
 
       expect($failure_proc_arr.count).to eq 1
       expect($failure_proc_arr.first[0]).to eq Nomade::Hooks::DEPLOY_FAILED
+
+      # Updating job job
+      expect {
+        deployer = Nomade::Deployer.new(nomad_endpoint)
+        deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start)
+        deployer.add_hook(Nomade::Hooks::DEPLOY_FINISHED, succesful)
+        deployer.add_hook(Nomade::Hooks::DEPLOY_FAILED, failure)
+        deployer.init_job("spec/jobfiles/batchjob_example_fail.hcl.erb", image_name, default_job_vars.call)
+        deployer.deploy!
+      }.to raise_error(SystemExit) do |error|
+        expect(error.status).to eq(3)
+      end
 
       # Cleanup
       expect {
