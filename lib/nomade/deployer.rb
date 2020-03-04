@@ -118,7 +118,14 @@ module Nomade
         sleep(1)
       end
 
-      @logger.info "Waiting until allocations are complete"
+      @logger.info "Waiting until allocations are no longer pending"
+      allocations = @http.allocations_from_evaluation_request(@evaluation_id)
+      until allocations.all?{|a| a["ClientStatus"] != "pending"}
+        @logger.info "."
+        sleep(2)
+        allocations = @http.allocations_from_evaluation_request(@evaluation_id)
+      end
+
       case @nomad_job.job_type
       when "service"
         service_deploy
