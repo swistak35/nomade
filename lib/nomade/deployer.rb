@@ -8,7 +8,7 @@ module Nomade
       @job_builder = Nomade::JobBuilder.new(@http)
       @logger = opts.fetch(:logger, Nomade.logger)
 
-      @timeout = Time.now.utc + 60 * 3 # minutes
+      @timeout = 60 * 3 # seconds
 
       @hooks = {
         Nomade::Hooks::DEPLOY_RUNNING => [],
@@ -177,7 +177,8 @@ module Nomade
 
     def service_deploy
       @logger.info "Waiting until tasks are placed"
-      @logger.info ".. deploy timeout is #{@timeout}"
+      deploy_timeout = Time.now.utc + @timeout
+      @logger.info ".. deploy timeout is #{deploy_timeout}"
 
       json = @http.deployment_request(@deployment_id)
       @logger.info "#{json["JobID"]} version #{json["JobVersion"]}"
@@ -229,7 +230,7 @@ module Nomade
             succesful_deployment = false
           end
 
-          if succesful_deployment == nil && Time.now.utc > @timeout
+          if succesful_deployment == nil && Time.now.utc > deploy_timeout
             @logger.info "Timeout hit, rolling back deploy!"
             @http.fail_deployment(@deployment_id)
             succesful_deployment = false
