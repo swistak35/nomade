@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    nomade (0.0.5)
+    nomade (0.1.1)
       yell (~> 2.2.0)
 
 GEM
@@ -38,11 +38,11 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  irb
+  irb (~> 1.0.0)
   nomade!
   pry (~> 0.12.2)
-  rspec
-  simplecov
+  rspec (~> 3.9.0)
+  simplecov (~> 0.18.5)
 
 BUNDLED WITH
    1.17.2
