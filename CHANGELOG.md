@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+N/A
+
+## [0.1.1] - 04/3/2020
+
 - Refactored HTTP-library a bit, making it easier to read and remove duplicate code.
 
 ## [0.1.0] - 04/3/2020
