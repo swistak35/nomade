@@ -143,7 +143,7 @@ module Nomade
           if stdout != ""
             @logger.info
             @logger.info "stdout:"
-            stdout.lines do |logline|
+            stdout.lines.each do |logline|
               @logger.info(logline.strip)
             end
           end
@@ -152,7 +152,7 @@ module Nomade
           if stderr != ""
             @logger.info
             @logger.info "stderr:"
-            stderr.lines do |logline|
+            stderr.lines.each do |logline|
               @logger.info(logline.strip)
             end
           end
@@ -328,7 +328,7 @@ module Nomade
               if stdout != ""
                 @logger.info
                 @logger.info "stdout:"
-                stdout.lines do |logline|
+                stdout.lines.each do |logline|
                   @logger.info(logline.strip)
                 end
               end
@@ -337,7 +337,7 @@ module Nomade
               if stderr != ""
                 @logger.info
                 @logger.info "stderr:"
-                stderr.lines do |logline|
+                stderr.lines.each do |logline|
                   @logger.info(logline.strip)
                 end
               end
