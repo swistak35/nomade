@@ -12,8 +12,8 @@ job "whoami-web" {
   update {
     max_parallel = 3
     min_healthy_time = "10s"
-    healthy_deadline = "5m"
-    progress_deadline = "10m"
+    healthy_deadline = "1m"
+    progress_deadline = "2m"
     auto_revert = false
     auto_promote = false
     canary = 3
