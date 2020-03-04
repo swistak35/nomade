@@ -107,7 +107,10 @@ module Nomade
     end
 
     def get_allocation_logs(allocation_id, task_name, logtype)
-      res_body = _request(:get, "/v1/client/fs/logs/#{allocation_id}?task=#{task_name}&type=#{logtype}&plain=true&origin=end", total_retries: 3)
+      res_body = _request(:get, "/v1/client/fs/logs/#{allocation_id}?task=#{task_name}&type=#{logtype}&plain=true&origin=end",
+        total_retries: 3,
+        expected_content_type: "text/plain",
+      )
       return res_body.gsub(/\e\[\d+m/, '')
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
@@ -153,7 +156,7 @@ module Nomade
 
     private
 
-    def _request(request_type, path, body: nil, total_retries: 0)
+    def _request(request_type, path, body: nil, total_retries: 0, expected_content_type: "application/json")
       uri = URI("#{@nomad_endpoint}#{path}")
 
       http = Net::HTTP.new(uri.host, uri.port)
@@ -189,7 +192,15 @@ module Nomade
       end
 
       raise if res.code != "200"
-      raise if res.content_type != "application/json"
+      if res.content_type != expected_content_type
+        # Sometimes the log endpoint doesn't set content_type on no content
+        # https://github.com/hashicorp/nomad/issues/7264
+        if res.content_type == nil && expected_content_type == "text/plain"
+          # don't raise
+        else
+          raise
+        end
+      end
 
       res.body
     end
