@@ -24,9 +24,12 @@ environment = {
 }
 
 image_name = "kaspergrubbe/clusterapp:0.0.11"
-nomad_job_migration = Nomade::Job.new('templates/clusterapp-batch.nomad.hcl.erb', image_name, environment)
-nomad_job_web = Nomade::Job.new('templates/clusterapp.nomad.hcl.erb', image_name, environment)
 
-Nomade::Deployer.new("https://kg.nomadserver.com", nomad_job_migration).deploy!
-Nomade::Deployer.new("https://kg.nomadserver.com", nomad_job_web).deploy!
+deployer = Nomade::Deployer.new("https://kg.nomadserver.com")
+deployer.init_job('templates/clusterapp-batch.nomad.hcl.erb', image_name, environment)
+deployer.deploy!
+
+deployer = Nomade::Deployer.new("https://kg.nomadserver.com:7001")
+deployer.init_job('templates/clusterapp.nomad.hcl.erb', image_name, environment)
+deployer.deploy!
 ```
