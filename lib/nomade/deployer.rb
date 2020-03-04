@@ -49,22 +49,24 @@ module Nomade
     end
 
     def deploy!
+      run_hooks(Nomade::Hooks::DEPLOY_RUNNING, @nomad_job, nil)
       _plan
       _deploy
+      run_hooks(Nomade::Hooks::DEPLOY_FINISHED, @nomad_job, nil)
     rescue Nomade::NoModificationsError => e
-      call_failure_handlers ["No modifications to make, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "No modifications to make, exiting!"])
       exit(0)
     rescue Nomade::GeneralError => e
-      call_failure_handlers [e.message, "GeneralError hit, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "GeneralError hit, exiting!"])
       exit(1)
     rescue Nomade::AllocationFailedError => e
-      call_failure_handlers ["Allocation failed with errors, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Allocation failed with errors, exiting!"])
       exit(3)
     rescue Nomade::UnsupportedDeploymentMode => e
-      call_failure_handlers [e.message, "Deployment failed with errors, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Deployment failed with errors, exiting!"])
       exit(4)
     rescue Nomade::FailedTaskGroupPlan => e
-      call_failure_handlers [e.message, "Couldn't plan correctly, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Couldn't plan correctly, exiting!"])
       exit(5)
     end
 
@@ -73,21 +75,6 @@ module Nomade
     end
 
     private
-
-    def call_failure_handlers(messages)
-      messages.each do |message|
-        $logger.info message
-      end
-      # @on_failure.each do |failure_handler|
-      #   failure_handler.call(messages)
-      # end
-    end
-
-    def print_errors(errors)
-      errors.each do |error|
-        @logger.warn(error)
-      end
-    end
 
     def _plan
       @http.capacity_plan_job(@nomad_job)
