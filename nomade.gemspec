@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
   s.add_runtime_dependency "yell", "~> 2.2.0"
   s.add_development_dependency "pry", "~> 0.12.2"
-  s.add_development_dependency "rspec"
-  s.add_development_dependency "simplecov"
-  s.add_development_dependency "irb"
+  s.add_development_dependency "rspec", "~> 3.9.0"
+  s.add_development_dependency "simplecov", "~> 0.18.5"
+  s.add_development_dependency "irb", "~> 1.0.0"
 end
