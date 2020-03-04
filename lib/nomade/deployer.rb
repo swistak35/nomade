@@ -65,6 +65,9 @@ module Nomade
     rescue Nomade::FailedTaskGroupPlan => e
       run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Couldn't plan correctly, exiting!"])
       exit(5)
+    rescue Nomade::DeploymentFailedError => e
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Couldn't deploy succesfully, exiting!"])
+      exit(6)
     end
 
     def stop!(purge = false)
@@ -269,9 +272,13 @@ module Nomade
       if succesful_deployment
         @logger.info ""
         @logger.info "#{@deployment_id} (version #{json["JobVersion"]}) was succesfully deployed!"
+
+        true
       else
         @logger.warn ""
         @logger.warn "#{@deployment_id} (version #{json["JobVersion"]}) deployment _failed_!"
+
+        raise DeploymentFailedError.new
       end
     end
 
@@ -341,6 +348,8 @@ module Nomade
 
         sleep(1)
       end
+
+      true
     end
 
     # Task-helpers

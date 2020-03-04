@@ -11,6 +11,9 @@ module Nomade
     end
     attr_reader :evaluation_id, :allocations
   end
+
+  class DeploymentFailedError < StandardError;end
+
   class UnsupportedDeploymentMode < StandardError; end
   class FailedTaskGroupPlan < StandardError; end
 end
