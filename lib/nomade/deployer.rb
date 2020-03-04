@@ -39,12 +39,6 @@ module Nomade
       end
     end
 
-    def run_hooks(hook, job, messages)
-      @hooks[hook].each do |hook_method|
-        hook_method.call(hook, job, messages)
-      end
-    end
-
     def deploy!
       run_hooks(Nomade::Hooks::DEPLOY_RUNNING, @nomad_job, nil)
       _plan
@@ -75,6 +69,12 @@ module Nomade
     end
 
     private
+
+    def run_hooks(hook, job, messages)
+      @hooks[hook].each do |hook_method|
+        hook_method.call(hook, job, messages)
+      end
+    end
 
     def _plan
       @http.capacity_plan_job(@nomad_job)
