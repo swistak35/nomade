@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+N/A
+
+## [0.1.0] - 04/3/2020
+
 - Added hook-functionality so we can print extra information or ping external services.
 - Fixed a case where we didn't mark a rollback as a failure.
 - No longer depend on the system having the Nomad executable installed, we're now only using the Nomad API
