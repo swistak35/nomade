@@ -10,10 +10,12 @@ N/A
 
 ## [0.1.1] - 04/3/2020
 
+### Changed
 - Refactored HTTP-library a bit, making it easier to read and remove duplicate code.
 
 ## [0.1.0] - 04/3/2020
 
+### Changed
 - Added hook-functionality so we can print extra information or ping external services.
 - Fixed a case where we didn't mark a rollback as a failure.
 - No longer depend on the system having the Nomad executable installed, we're now only using the Nomad API
