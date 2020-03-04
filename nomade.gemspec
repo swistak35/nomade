@@ -8,12 +8,14 @@ Gem::Specification.new do |s|
   s.summary = "Gem that deploys nomad jobs"
   s.files = [
     "lib/nomade.rb",
-    "lib/nomade/job.rb",
-    "lib/nomade/logger.rb",
-    "lib/nomade/exceptions.rb",
-    "lib/nomade/http.rb",
-    "lib/nomade/deployer.rb",
     "lib/nomade/decorators.rb",
+    "lib/nomade/deployer.rb",
+    "lib/nomade/exceptions.rb",
+    "lib/nomade/hooks.rb",
+    "lib/nomade/http.rb",
+    "lib/nomade/job.rb",
+    "lib/nomade/job_builder.rb",
+    "lib/nomade/logger.rb",
   ]
   s.require_paths = ["lib"]
   s.add_runtime_dependency "yell", "~> 2.2.0"
