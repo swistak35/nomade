@@ -175,9 +175,9 @@ module Nomade
       req.add_field "Content-Type", "application/json"
       req.body = body if body
 
-      begin
+      res = begin
         retries ||= 0
-        res = http.request(req)
+        http.request(req)
       rescue Timeout::Error, Errno::ETIMEDOUT, Errno::EINVAL, Errno::ECONNRESET, EOFError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError, SocketError
         if retries < total_retries
           retries += 1
@@ -187,8 +187,6 @@ module Nomade
           raise
         end
       end
-
-      res = http.request(req)
 
       raise if res.code != "200"
       raise if res.content_type != "application/json"
