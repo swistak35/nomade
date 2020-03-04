@@ -1,40 +1,67 @@
 module Nomade
   class Deployer
-    def initialize(nomad_endpoint, nomad_job, opts = {})
-      @nomad_job = nomad_job
-      @evaluation_id = nil
-      @deployment_id = nil
-      @timeout = Time.now.utc + 60 * 3 # minutes
+    attr_reader :nomad_job
+
+    def initialize(nomad_endpoint, opts = {})
       @nomad_endpoint = nomad_endpoint
       @http = Nomade::Http.new(@nomad_endpoint)
+      @job_builder = Nomade::JobBuilder.new(@http)
       @logger = opts.fetch(:logger, Nomade.logger)
 
-      @on_success = opts.fetch(:on_success, [])
-      @on_failure = opts.fetch(:on_failure, [])
-      @on_failure << method(:print_errors)
+      @timeout = 60 * 3 # seconds
+
+      @hooks = {
+        Nomade::Hooks::DEPLOY_RUNNING => [],
+        Nomade::Hooks::DEPLOY_FINISHED => [],
+        Nomade::Hooks::DEPLOY_FAILED => [],
+      }
+
+      self
+    end
+
+    def init_job(template_file, image_full_name, template_variables = {})
+      @nomad_job = @job_builder.build(template_file, image_full_name, template_variables)
+      @evaluation_id = nil
+      @deployment_id = nil
+
+      self
+    end
+
+    def add_hook(hook, hook_method)
+      if Nomade::Hooks::DEPLOY_RUNNING == hook
+        @hooks[Nomade::Hooks::DEPLOY_RUNNING] << hook_method
+      elsif Nomade::Hooks::DEPLOY_FINISHED == hook
+        @hooks[Nomade::Hooks::DEPLOY_FINISHED] << hook_method
+      elsif Nomade::Hooks::DEPLOY_FAILED == hook
+        @hooks[Nomade::Hooks::DEPLOY_FAILED] << hook_method
+      else
+        raise "#{hook} not supported!"
+      end
     end
 
     def deploy!
-      plan
-      deploy
+      run_hooks(Nomade::Hooks::DEPLOY_RUNNING, @nomad_job, nil)
+      _plan
+      _deploy
+      run_hooks(Nomade::Hooks::DEPLOY_FINISHED, @nomad_job, nil)
     rescue Nomade::NoModificationsError => e
-      call_failure_handlers ["No modifications to make, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "No modifications to make, exiting!"])
       exit(0)
     rescue Nomade::GeneralError => e
-      call_failure_handlers [e.message, "GeneralError hit, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "GeneralError hit, exiting!"])
       exit(1)
-    rescue Nomade::PlanningError => e
-      call_failure_handlers ["Couldn't make a plan, maybe a bad connection to Nomad server, exiting!"]
-      exit(2)
     rescue Nomade::AllocationFailedError => e
-      call_failure_handlers ["Allocation failed with errors, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Allocation failed with errors, exiting!"])
       exit(3)
     rescue Nomade::UnsupportedDeploymentMode => e
-      call_failure_handlers [e.message, "Deployment failed with errors, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Deployment failed with errors, exiting!"])
       exit(4)
     rescue Nomade::FailedTaskGroupPlan => e
-      call_failure_handlers [e.message, "Couldn't plan correctly, exiting!"]
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Couldn't plan correctly, exiting!"])
       exit(5)
+    rescue Nomade::DeploymentFailedError => e
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Couldn't deploy succesfully, exiting!"])
+      exit(6)
     end
 
     def stop!(purge = false)
@@ -43,28 +70,34 @@ module Nomade
 
     private
 
-    def call_failure_handlers(messages)
-      @on_failure.each do |failure_handler|
-        failure_handler.call(messages)
+    def run_hooks(hook, job, messages)
+      @hooks[hook].each do |hook_method|
+        hook_method.call(hook, job, messages)
       end
     end
 
-    def print_errors(errors)
-      errors.each do |error|
-        @logger.warn(error)
-      end
-    end
-
-    def plan
+    def _plan
       @http.capacity_plan_job(@nomad_job)
     end
 
-    def deploy
+    def _deploy
       @logger.info "Deploying #{@nomad_job.job_name} (#{@nomad_job.job_type}) with #{@nomad_job.image_name_and_version}"
       @logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
 
       @logger.info "Checking cluster for connectivity and capacity.."
-      @http.plan_job(@nomad_job)
+      plan_data = @http.plan_job(@nomad_job)
+
+      sum_of_changes = plan_data["Annotations"]["DesiredTGUpdates"].map { |group_name, task_group_updates|
+        task_group_updates["Stop"] +
+        task_group_updates["Place"] +
+        task_group_updates["Migrate"] +
+        task_group_updates["DestructiveUpdate"] +
+        task_group_updates["Canary"]
+      }.sum
+
+      if sum_of_changes == 0
+        raise Nomade::NoModificationsError.new
+      end
 
       @evaluation_id = if @http.check_if_job_exists?(@nomad_job)
         @logger.info "Updating existing job"
@@ -85,7 +118,14 @@ module Nomade
         sleep(1)
       end
 
-      @logger.info "Waiting until allocations are complete"
+      @logger.info "Waiting until allocations are no longer pending"
+      allocations = @http.allocations_from_evaluation_request(@evaluation_id)
+      until allocations.all?{|a| a["ClientStatus"] != "pending"}
+        @logger.info "."
+        sleep(2)
+        allocations = @http.allocations_from_evaluation_request(@evaluation_id)
+      end
+
       case @nomad_job.job_type
       when "service"
         service_deploy
@@ -110,7 +150,7 @@ module Nomade
           if stdout != ""
             @logger.info
             @logger.info "stdout:"
-            stdout.lines do |logline|
+            stdout.lines.each do |logline|
               @logger.info(logline.strip)
             end
           end
@@ -119,7 +159,7 @@ module Nomade
           if stderr != ""
             @logger.info
             @logger.info "stderr:"
-            stderr.lines do |logline|
+            stderr.lines.each do |logline|
               @logger.info(logline.strip)
             end
           end
@@ -144,7 +184,8 @@ module Nomade
 
     def service_deploy
       @logger.info "Waiting until tasks are placed"
-      @logger.info ".. deploy timeout is #{@timeout}"
+      deploy_timeout = Time.now.utc + @timeout
+      @logger.info ".. deploy timeout is #{deploy_timeout}"
 
       json = @http.deployment_request(@deployment_id)
       @logger.info "#{json["JobID"]} version #{json["JobVersion"]}"
@@ -196,7 +237,7 @@ module Nomade
             succesful_deployment = false
           end
 
-          if succesful_deployment == nil && Time.now.utc > @timeout
+          if succesful_deployment == nil && Time.now.utc > deploy_timeout
             @logger.info "Timeout hit, rolling back deploy!"
             @http.fail_deployment(@deployment_id)
             succesful_deployment = false
@@ -239,9 +280,13 @@ module Nomade
       if succesful_deployment
         @logger.info ""
         @logger.info "#{@deployment_id} (version #{json["JobVersion"]}) was succesfully deployed!"
+
+        true
       else
         @logger.warn ""
         @logger.warn "#{@deployment_id} (version #{json["JobVersion"]}) deployment _failed_!"
+
+        raise DeploymentFailedError.new
       end
     end
 
@@ -290,7 +335,7 @@ module Nomade
               if stdout != ""
                 @logger.info
                 @logger.info "stdout:"
-                stdout.lines do |logline|
+                stdout.lines.each do |logline|
                   @logger.info(logline.strip)
                 end
               end
@@ -299,7 +344,7 @@ module Nomade
               if stderr != ""
                 @logger.info
                 @logger.info "stderr:"
-                stderr.lines do |logline|
+                stderr.lines.each do |logline|
                   @logger.info(logline.strip)
                 end
               end
@@ -311,6 +356,8 @@ module Nomade
 
         sleep(1)
       end
+
+      true
     end
 
     # Task-helpers

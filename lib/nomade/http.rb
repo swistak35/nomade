@@ -120,9 +120,10 @@ module Nomade
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
-      req.body = nomad_job.configuration(:json)
+      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
 
       res = http.request(req)
+
       raise if res.code != "200"
       raise if res.content_type != "application/json"
 
@@ -143,9 +144,10 @@ module Nomade
 
       req = Net::HTTP::Post.new(uri)
       req.add_field "Content-Type", "application/json"
-      req.body = nomad_job.configuration(:json)
+      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
 
       res = http.request(req)
+
       raise if res.code != "200"
       raise if res.content_type != "application/json"
 
@@ -249,23 +251,7 @@ module Nomade
     end
 
     def capacity_plan_job(nomad_job)
-      uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}/plan")
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      if @nomad_endpoint.include?("https://")
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      end
-
-      req = Net::HTTP::Post.new(uri)
-      req.add_field "Content-Type", "application/json"
-      req.body = nomad_job.configuration(:json)
-
-      res = http.request(req)
-      raise if res.code != "200"
-      raise if res.content_type != "application/json"
-
-      plan_output = JSON.parse(res.body)
+      plan_output = plan_job(nomad_job)
 
       if plan_output["FailedTGAllocs"]
         raise Nomade::FailedTaskGroupPlan.new("Failed to plan groups: #{plan_output["FailedTGAllocs"].keys.join(",")}")
@@ -279,26 +265,56 @@ module Nomade
       raise
     end
 
-    def plan_job(nomad_job)
-      rendered_template = nomad_job.configuration(:hcl)
+    def convert_hcl_to_json(job_hcl)
+      uri = URI("#{@nomad_endpoint}/v1/jobs/parse")
 
-      #   0: No allocations created or destroyed. Nothing to do.
-      #   1: Allocations created or destroyed.
-      # 255: Error determining plan results. Nothing to do.
-      allowed_exit_codes = [0, 1, 255]
-
-      exit_status, stdout, stderr = Shell.exec("NOMAD_ADDR=#{@nomad_endpoint} nomad job plan -diff -verbose -no-color -", rendered_template, allowed_exit_codes)
-
-      case exit_status
-      when 0
-        raise Nomade::NoModificationsError.new
-      when 1
-        # no-op
-      when 255
-        raise Nomade::PlanningError.new
+      http = Net::HTTP.new(uri.host, uri.port)
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
       end
 
-      true
+      req = Net::HTTP::Post.new(uri)
+      req.add_field "Content-Type", "application/json"
+
+      req.body = JSON.generate({
+        "JobHCL": job_hcl,
+        "Canonicalize": false,
+      })
+
+      res = http.request(req)
+      raise if res.code != "200"
+      raise if res.content_type != "application/json"
+
+      res.body
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
     end
+
+    def plan_job(nomad_job)
+      uri = URI("#{@nomad_endpoint}/v1/job/#{nomad_job.job_name}/plan")
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      if @nomad_endpoint.include?("https://")
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
+
+      req = Net::HTTP::Post.new(uri)
+      req.add_field "Content-Type", "application/json"
+      req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
+
+      res = http.request(req)
+
+      raise if res.code != "200"
+      raise if res.content_type != "application/json"
+
+      JSON.parse(res.body)
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
   end
 end

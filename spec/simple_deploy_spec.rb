@@ -1,51 +1,92 @@
 require 'spec_helper'
 
-$logger = Yell.new do |l|
-  l.adapter STDOUT, level: [:info, :warn]
-  l.adapter STDERR, level: [:error, :fatal]
-end
-
 RSpec.describe Nomade do
   it "should deploy" do
-    template_variables = {
-      datacenter: "eu-test-1",
-      dns: "172.17.0.1",
-      environment_variables: {
-        "DEPLOY_TIME"  => Time.now.utc.to_s,
-      }
-    }
+    template_variables = default_job_vars.call
 
     nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
     image_name = "stefanscherer/whoami:2.0.0"
-    nomad_job_web = Nomade::Job.new("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
 
     # First deploy for the first time
-    expect { Nomade::Deployer.new(nomad_endpoint, nomad_job_web, logger: $logger).deploy! }.not_to raise_error
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
+      deployer.deploy!
+    }.not_to raise_error
 
     # Deploy the exact same job
-    expect { Nomade::Deployer.new(nomad_endpoint, nomad_job_web, logger: $logger).deploy! }.to raise_error(SystemExit) do |error|
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
+      deployer.deploy!
+    }.to raise_error(SystemExit) do |error|
       expect(error.status).to eq(0)
     end
 
     # Deploy changed job
-    template_variables = {
-      datacenter: "eu-test-1",
-      dns: "172.17.0.1",
-      environment_variables: {
-        "DEPLOY_TIME"  => Time.now.utc.to_s,
-      }
-    }
-    nomad_job_web = Nomade::Job.new("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
-    expect { Nomade::Deployer.new(nomad_endpoint, nomad_job_web, logger: $logger).deploy! }.not_to raise_error
+    template_variables = default_job_vars.call
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
+      deployer.deploy!
+    }.not_to raise_error
 
     # Deploy crazy job
-    nomad_job_web = Nomade::Job.new("spec/jobfiles/whoami_crazy.hcl.erb", image_name, template_variables)
-    expect { Nomade::Deployer.new(nomad_endpoint, nomad_job_web, logger: $logger).deploy! }.to raise_error(SystemExit) do |error|
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami_crazy.hcl.erb", image_name, template_variables)
+      deployer.deploy!
+    }.to raise_error(SystemExit) do |error|
       expect(error.status).to eq(5)
     end
 
     # Cleanup
-    Nomade::Deployer.new(nomad_endpoint, nomad_job_web, logger: $logger).stop!
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
+      deployer.stop!(true)
+    }.not_to raise_error
+    # Allow Nomad to clean up
+    sleep(5)
+  end
+
+  it "should rollback if deploy is unhealthy" do
+    nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
+    image_name = "stefanscherer/whoami:2.0.0"
+
+    # First deploy for the first time
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
+      deployer.deploy!
+    }.not_to raise_error
+
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami_fail.hcl.erb", image_name, default_job_vars.call)
+      deployer.deploy!
+    }.to raise_error(SystemExit) do |error|
+      expect(error.status).to eq(6)
+    end
+
+    # Verify job data
+    version_data = job_versions(nomad_endpoint, "whoami-web")
+    expect(version_data["Versions"].count).to eq 2
+
+    first_deploy = version_data["Versions"].select{|version| version["Version"] == 0}.first
+    expect(first_deploy["Stable"]).to eq true
+
+    second_deploy = version_data["Versions"].select{|version| version["Version"] == 1}.first
+    expect(second_deploy["Stable"]).to eq false
+
+    # Cleanup
+    expect {
+      deployer = Nomade::Deployer.new(nomad_endpoint)
+      deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
+      deployer.stop!(true)
+    }.not_to raise_error
+    # Allow Nomad to clean up
+    sleep(5)
   end
 
 end

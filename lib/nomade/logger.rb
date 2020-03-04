@@ -10,8 +10,10 @@ module Nomade
       end
 
       Yell.new do |l|
-        l.adapter STDOUT, level: stdout
-        l.adapter STDERR, level: [:error, :fatal]
+        unless ARGV.include?("-q")
+          l.adapter STDOUT, level: stdout
+          l.adapter STDERR, level: [:error, :fatal]
+        end
       end
     end
   end
