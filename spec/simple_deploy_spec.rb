@@ -46,18 +46,18 @@ RSpec.describe Nomade do
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
       deployer.stop!(true)
     }.not_to raise_error
+    # Allow Nomad to clean up
+    sleep(5)
   end
 
   it "should rollback if deploy is unhealthy" do
     nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
     image_name = "stefanscherer/whoami:2.0.0"
-    job = nil
 
     # First deploy for the first time
     expect {
       deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
-      job = deployer.nomad_job
       deployer.deploy!
     }.not_to raise_error
 
@@ -65,7 +65,9 @@ RSpec.describe Nomade do
       deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
       deployer.init_job("spec/jobfiles/whoami_fail.hcl.erb", image_name, default_job_vars.call)
       deployer.deploy!
-    }.not_to raise_error
+    }.to raise_error(SystemExit) do |error|
+      expect(error.status).to eq(6)
+    end
 
     # Verify job data
     version_data = job_versions(nomad_endpoint, "whoami-web")
@@ -83,6 +85,8 @@ RSpec.describe Nomade do
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
       deployer.stop!(true)
     }.not_to raise_error
+    # Allow Nomad to clean up
+    sleep(5)
   end
 
 end
