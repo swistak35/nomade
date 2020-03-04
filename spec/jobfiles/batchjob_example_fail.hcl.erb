@@ -5,8 +5,15 @@ job "batch-test" {
   group "batch" {
     count = 1
 
+    reschedule {
+      attempts  = 0
+      unlimited = false
+    }
+
     restart {
+      interval = "20s"
       attempts = 2
+      delay    = "5s"
       mode     = "fail"
     }
 
