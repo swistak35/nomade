@@ -32,7 +32,6 @@ module Nomade
       local_binding.local_variable_set(:image_name_and_version, image_full_name)
       local_binding.local_variable_set(:image_full_name, image_full_name)
       local_binding.local_variable_set(:template_variables, template_variables)
-      rendered = ERB.new(file, nil, '-').result(local_binding)
 
       # https://github.com/ruby/ruby/commit/3406c5d
       rendered = if ERB.instance_method(:initialize).parameters.assoc(:key) # Ruby 2.6+
