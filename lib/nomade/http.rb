@@ -306,6 +306,7 @@ module Nomade
       req.body = JSON.generate({"Job" => nomad_job.configuration(:hash)})
 
       res = http.request(req)
+
       raise if res.code != "200"
       raise if res.content_type != "application/json"
 

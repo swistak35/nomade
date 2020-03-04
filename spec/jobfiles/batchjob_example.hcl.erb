@@ -1,0 +1,39 @@
+job "batch-test" {
+  datacenters = ["<%= template_variables[:datacenter] %>"]
+  type = "batch"
+
+  group "batch" {
+    count = 1
+
+    restart {
+      interval = "20s"
+      attempts = 2
+      delay    = "5s"
+      mode     = "delay"
+    }
+
+    task "date" {
+      driver = "docker"
+
+      env {
+<% template_variables[:environment_variables].each do |ek, ev| -%>
+        <%= ek %> = "<%= ev %>"
+<% end -%>
+      }
+
+      config {
+        image = "<%= image_name_and_version %>"
+        command = "date"
+      }
+
+      resources {
+        cpu = 100 # Mhz
+        memory = 128 # MB
+
+        network {
+          mbits = 1
+        }
+      }
+    }
+  }
+}
