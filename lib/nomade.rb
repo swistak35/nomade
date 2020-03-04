@@ -1,6 +1,5 @@
 ENV["TZ"] = "UTC"
 
-require "nomade/shell"
 require "nomade/job"
 require "nomade/job_builder"
 require "nomade/logger"

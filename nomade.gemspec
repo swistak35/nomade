@@ -8,7 +8,6 @@ Gem::Specification.new do |s|
   s.summary = "Gem that deploys nomad jobs"
   s.files = [
     "lib/nomade.rb",
-    "lib/nomade/shell.rb",
     "lib/nomade/job.rb",
     "lib/nomade/logger.rb",
     "lib/nomade/exceptions.rb",
