@@ -15,8 +15,6 @@ module Nomade
         Nomade::Hooks::DEPLOY_FINISHED => [],
         Nomade::Hooks::DEPLOY_FAILED => [],
       }
-      # add_hook(Nomade::Hooks::DEPLOY_FAILED, )
-      # method(:print_errors)
 
       self
     end
