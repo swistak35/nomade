@@ -45,6 +45,15 @@ RSpec.describe "Deploy hooks" do
       expect($succesful_proc_arr.first[0]).to eq Nomade::Hooks::DEPLOY_FINISHED
 
       expect($failure_proc_arr.count).to eq 0
+
+      # Cleanup
+      expect {
+        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
+        deployer.stop!(true)
+      }.not_to raise_error
+      # Allow Nomad to clean up
+      sleep(5)
     end
 
     it "should run deploy hooks on a failed deploy" do
@@ -85,6 +94,15 @@ RSpec.describe "Deploy hooks" do
 
       expect($failure_proc_arr.count).to eq 1
       expect($failure_proc_arr.first[0]).to eq Nomade::Hooks::DEPLOY_FAILED
+
+      # Cleanup
+      expect {
+        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
+        deployer.stop!(true)
+      }.not_to raise_error
+      # Allow Nomad to clean up
+      sleep(5)
     end
   end
 
