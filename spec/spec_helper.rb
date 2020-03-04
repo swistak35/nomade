@@ -92,11 +92,6 @@ RSpec.configure do |config|
   Kernel.srand config.seed
 end
 
-$logger = Yell.new do |l|
-  l.adapter STDOUT, level: [:info, :warn]
-  l.adapter STDERR, level: [:error, :fatal]
-end
-
 def job_versions(endpoint, nomad_job_name)
   uri = URI("#{endpoint}/v1/job/#{nomad_job_name}/versions")
 

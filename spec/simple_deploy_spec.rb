@@ -9,14 +9,14 @@ RSpec.describe Nomade do
 
     # First deploy for the first time
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
       deployer.deploy!
     }.not_to raise_error
 
     # Deploy the exact same job
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
       deployer.deploy!
     }.to raise_error(SystemExit) do |error|
@@ -26,14 +26,14 @@ RSpec.describe Nomade do
     # Deploy changed job
     template_variables = default_job_vars.call
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
       deployer.deploy!
     }.not_to raise_error
 
     # Deploy crazy job
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami_crazy.hcl.erb", image_name, template_variables)
       deployer.deploy!
     }.to raise_error(SystemExit) do |error|
@@ -42,7 +42,7 @@ RSpec.describe Nomade do
 
     # Cleanup
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
       deployer.stop!(true)
     }.not_to raise_error
@@ -56,13 +56,13 @@ RSpec.describe Nomade do
 
     # First deploy for the first time
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
       deployer.deploy!
     }.not_to raise_error
 
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami_fail.hcl.erb", image_name, default_job_vars.call)
       deployer.deploy!
     }.to raise_error(SystemExit) do |error|
@@ -81,7 +81,7 @@ RSpec.describe Nomade do
 
     # Cleanup
     expect {
-      deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+      deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
       deployer.stop!(true)
     }.not_to raise_error

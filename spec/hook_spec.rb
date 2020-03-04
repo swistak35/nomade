@@ -26,7 +26,7 @@ RSpec.describe "Deploy hooks" do
       }
 
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start01)
         deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start02)
         deployer.add_hook(Nomade::Hooks::DEPLOY_FINISHED, succesful)
@@ -48,7 +48,7 @@ RSpec.describe "Deploy hooks" do
 
       # Cleanup
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
         deployer.stop!(true)
       }.not_to raise_error
@@ -77,7 +77,7 @@ RSpec.describe "Deploy hooks" do
       }
 
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start)
         deployer.add_hook(Nomade::Hooks::DEPLOY_FINISHED, succesful)
         deployer.add_hook(Nomade::Hooks::DEPLOY_FAILED, failure)
@@ -97,7 +97,7 @@ RSpec.describe "Deploy hooks" do
 
       # Cleanup
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, default_job_vars.call)
         deployer.stop!(true)
       }.not_to raise_error
@@ -133,7 +133,7 @@ RSpec.describe "Deploy hooks" do
       }
 
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start01)
         deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start02)
         deployer.add_hook(Nomade::Hooks::DEPLOY_FINISHED, succesful)
@@ -155,7 +155,7 @@ RSpec.describe "Deploy hooks" do
 
       # Cleanup
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.init_job("spec/jobfiles/batchjob_example.hcl.erb", image_name, default_job_vars.call)
         deployer.stop!(true)
       }.not_to raise_error
@@ -184,7 +184,7 @@ RSpec.describe "Deploy hooks" do
       }
 
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, start)
         deployer.add_hook(Nomade::Hooks::DEPLOY_FINISHED, succesful)
         deployer.add_hook(Nomade::Hooks::DEPLOY_FAILED, failure)
@@ -204,7 +204,7 @@ RSpec.describe "Deploy hooks" do
 
       # Cleanup
       expect {
-        deployer = Nomade::Deployer.new(nomad_endpoint, logger: $logger)
+        deployer = Nomade::Deployer.new(nomad_endpoint)
         deployer.init_job("spec/jobfiles/batchjob_example_fail.hcl.erb", image_name, default_job_vars.call)
         deployer.stop!(true)
       }.not_to raise_error
