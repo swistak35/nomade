@@ -28,12 +28,11 @@ module Nomade
     end
 
     def add_hook(hook, hook_method)
-      case hook
-      when Nomade::Hooks::DEPLOY_RUNNING
+      if Nomade::Hooks::DEPLOY_RUNNING == hook
         @hooks[Nomade::Hooks::DEPLOY_RUNNING] << hook_method
-      when Nomade::Hooks::DEPLOY_FINISHED
+      elsif Nomade::Hooks::DEPLOY_FINISHED == hook
         @hooks[Nomade::Hooks::DEPLOY_FINISHED] << hook_method
-      when Nomade::Hooks::DEPLOY_FAILED
+      elsif Nomade::Hooks::DEPLOY_FAILED == hook
         @hooks[Nomade::Hooks::DEPLOY_FAILED] << hook_method
       else
         raise "#{hook} not supported!"
