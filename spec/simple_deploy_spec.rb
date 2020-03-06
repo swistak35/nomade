@@ -19,9 +19,7 @@ RSpec.describe Nomade do
       deployer = Nomade::Deployer.new(nomad_endpoint)
       deployer.init_job("spec/jobfiles/whoami.hcl.erb", image_name, template_variables)
       deployer.deploy!
-    }.to raise_error(SystemExit) do |error|
-      expect(error.status).to eq(0)
-    end
+    }.not_to raise_error
 
     # Deploy changed job
     template_variables = default_job_vars.call

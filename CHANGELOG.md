@@ -6,7 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+- Add exception class name to the messages array variable used in hooks.
+- No longer run `exit(0)` when there is no modifications to make, this allows for chaining in the same deploy-script.
+- Add a default hook on `Nomade::Hooks::DEPLOY_FAILED` that will print the error.
 
 ## [0.1.1] - 04/3/2020
 
