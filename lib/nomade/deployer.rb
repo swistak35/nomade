@@ -15,6 +15,12 @@ module Nomade
         Nomade::Hooks::DEPLOY_FINISHED => [],
         Nomade::Hooks::DEPLOY_FAILED => [],
       }
+      add_hook(Nomade::Hooks::DEPLOY_FAILED, lambda {|hook_type, nomad_job, messages|
+        @logger.error "Failing deploy:"
+        messages.each do |message|
+          @logger.error "- #{message}"
+        end
+      })
 
       self
     end
