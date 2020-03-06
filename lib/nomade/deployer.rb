@@ -45,22 +45,21 @@ module Nomade
       _deploy
       run_hooks(Nomade::Hooks::DEPLOY_FINISHED, @nomad_job, nil)
     rescue Nomade::NoModificationsError => e
-      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "No modifications to make, exiting!"])
-      exit(0)
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "No modifications to make, exiting!"].compact.uniq)
     rescue Nomade::GeneralError => e
-      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "GeneralError hit, exiting!"])
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "GeneralError hit, exiting!"].compact.uniq)
       exit(1)
     rescue Nomade::AllocationFailedError => e
-      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Allocation failed with errors, exiting!"])
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Allocation failed with errors, exiting!"].compact.uniq)
       exit(3)
     rescue Nomade::UnsupportedDeploymentMode => e
-      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Deployment failed with errors, exiting!"])
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Deployment failed with errors, exiting!"].compact.uniq)
       exit(4)
     rescue Nomade::FailedTaskGroupPlan => e
-      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Couldn't plan correctly, exiting!"])
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Couldn't plan correctly, exiting!"].compact.uniq)
       exit(5)
     rescue Nomade::DeploymentFailedError => e
-      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.message, "Couldn't deploy succesfully, exiting!"])
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Couldn't deploy succesfully, exiting!"].compact.uniq)
       exit(6)
     end
 

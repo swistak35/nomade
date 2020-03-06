@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+- Add exception class name to the messages array variable used in hooks.
 
 ## [0.1.1] - 04/3/2020
 
