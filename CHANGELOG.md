@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+N/A
+
+## [0.1.3] - 25/3/2020
 - Make timeout configurable
 
 ## [0.1.2] - 06/3/2020
