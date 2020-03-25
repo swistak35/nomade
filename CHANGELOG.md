@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+- Make timeout configurable
 
 ## [0.1.2] - 06/3/2020
 - Add exception class name to the messages array variable used in hooks.

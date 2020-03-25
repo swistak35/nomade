@@ -8,7 +8,7 @@ module Nomade
       @job_builder = Nomade::JobBuilder.new(@http)
       @logger = opts.fetch(:logger, Nomade.logger)
 
-      @timeout = 60 * 3 # seconds
+      @timeout = opts.fetch(:timeout, 60 * 3)
 
       @hooks = {
         Nomade::Hooks::DEPLOY_RUNNING => [],
