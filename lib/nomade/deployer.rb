@@ -112,32 +112,36 @@ module Nomade
         @http.create_job(@nomad_job)
       end
 
-      @logger.info "EvaluationID: #{@evaluation_id}"
-      @logger.info "#{@evaluation_id} Waiting until evaluation is complete"
-      eval_status = nil
-      while(eval_status != "complete") do
-        evaluation = @http.evaluation_request(@evaluation_id)
-        @deployment_id ||= evaluation["DeploymentID"]
-        eval_status = evaluation["Status"]
-        @logger.info "."
-        sleep(1)
-      end
-
-      @logger.info "Waiting until allocations are no longer pending"
-      allocations = @http.allocations_from_evaluation_request(@evaluation_id)
-      until allocations.all?{|a| a["ClientStatus"] != "pending"}
-        @logger.info "."
-        sleep(2)
-        allocations = @http.allocations_from_evaluation_request(@evaluation_id)
-      end
-
-      case @nomad_job.job_type
-      when "service"
-        service_deploy
-      when "batch"
-        batch_deploy
+      if @evaluation_id.empty?
+        @logger.info "Parameterized job without evaluation, no more work needed"
       else
-        raise Nomade::GeneralError.new("Job-type '#{@nomad_job.job_type}' not implemented")
+        @logger.info "EvaluationID: #{@evaluation_id}"
+        @logger.info "#{@evaluation_id} Waiting until evaluation is complete"
+        eval_status = nil
+        while(eval_status != "complete") do
+          evaluation = @http.evaluation_request(@evaluation_id)
+          @deployment_id ||= evaluation["DeploymentID"]
+          eval_status = evaluation["Status"]
+          @logger.info "."
+          sleep(1)
+        end
+
+        @logger.info "Waiting until allocations are no longer pending"
+        allocations = @http.allocations_from_evaluation_request(@evaluation_id)
+        until allocations.all?{|a| a["ClientStatus"] != "pending"}
+          @logger.info "."
+          sleep(2)
+          allocations = @http.allocations_from_evaluation_request(@evaluation_id)
+        end
+
+        case @nomad_job.job_type
+        when "service"
+          service_deploy
+        when "batch"
+          batch_deploy
+        else
+          raise Nomade::GeneralError.new("Job-type '#{@nomad_job.job_type}' not implemented")
+        end
       end
     rescue Nomade::AllocationFailedError => e
       e.allocations.each do |allocation|
