@@ -1,3 +1,5 @@
+require "base64"
+
 module Nomade
   class Deployer
     attr_reader :nomad_job
@@ -85,6 +87,44 @@ module Nomade
     rescue Nomade::DeploymentFailedError => e
       run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Couldn't deploy succesfully, exiting!"].compact.uniq)
       exit(6)
+    end
+
+    def dispatch!(payload_data: nil, payload_metadata: {})
+      check_for_job_init
+
+      run_hooks(Nomade::Hooks::DISPATCH_RUNNING, @nomad_job, nil)
+      _dispatch(payload_data, payload_metadata)
+      run_hooks(Nomade::Hooks::DISPATCH_FINISHED, @nomad_job, nil)
+    rescue Nomade::DispatchMetaDataFormattingError => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Metadata wrongly formatted, exiting!"].compact.uniq)
+      exit(10)
+    rescue Nomade::DispatchMissingMetaData => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Required metadata missing, exiting!"].compact.uniq)
+      exit(11)
+    rescue Nomade::DispatchUnknownMetaData => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Unknown metadata sent to server, exiting!"].compact.uniq)
+      exit(12)
+    rescue Nomade::DispatchMissingPayload => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Job requires payload, but payload isn't set!"].compact.uniq)
+      exit(20)
+    rescue Nomade::DispatchPayloadNotAllowed => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Job does not allow payload!"].compact.uniq)
+      exit(21)
+    rescue Nomade::DispatchPayloadUnknown => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "API error!"].compact.uniq)
+      exit(22)
+    rescue Nomade::DispatchWrongJobType => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Job has wrong job-type"].compact.uniq)
+      exit(30)
+    rescue Nomade::DispatchNotParamaterized => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Job is not paramaterized"].compact.uniq)
+      exit(31)
+    rescue Nomade::AllocationFailedError => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Allocation failed with errors, exiting!"].compact.uniq)
+      exit(40)
+    rescue Nomade::GeneralError => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "GeneralError hit, exiting!"].compact.uniq)
+      exit(1)
     end
 
     def stop!(purge = false)
@@ -213,6 +253,93 @@ module Nomade
       end
 
       raise
+    end
+
+    def _dispatch(payload_data, payload_metadata)
+      @logger.info "Running sanity checks"
+
+      if @nomad_job.job_type != "batch"
+        raise DispatchWrongJobType.new("Job-type for #{@nomad_job.job_name} is \"#{@nomad_job.job_type}\" but should be \"batch\"")
+      end
+
+      if @nomad_job.configuration(:hash)["ParameterizedJob"] == nil
+        raise DispatchNotParamaterized.new("Job doesn't seem to be a paramaterized job, returned JobHash doesn't contain ParameterizedJob-key")
+      end
+
+      payload_data = if payload_data
+         Base64.encode64(payload_data)
+      else
+        nil
+      end
+
+      payload_metadata = if payload_metadata == nil
+        []
+      else
+        Hash[payload_metadata.collect{|k,v| [k.to_s, v]}]
+        payload_metadata.each do |key, value|
+          unless [key, value].map(&:class) == [String, String]
+            raise Nomade::DispatchMetaDataFormattingError.new("Dispatch metadata must only be strings: #{key}(#{key.class}) = #{value}(#{value.class})")
+          end
+        end
+      end
+
+      meta_required = @nomad_job.configuration(:hash)["ParameterizedJob"]["MetaRequired"]
+      meta_optional = @nomad_job.configuration(:hash)["ParameterizedJob"]["MetaOptional"]
+      payload       = @nomad_job.configuration(:hash)["ParameterizedJob"]["Payload"]
+
+      if meta_required
+        @logger.info "Dispatch job expects the following metakeys: #{meta_required.join(", ")}"
+        meta_required.each do |required_key|
+          unless payload_metadata.include?(required_key)
+            raise Nomade::DispatchMissingMetaData.new("Dispatch job expects metakey #{required_key} but it was not set")
+          end
+        end
+      end
+
+      allowed_meta_tags = [meta_required, meta_optional].flatten.uniq
+      @logger.info "Dispatch job allows the following metakeys: #{allowed_meta_tags.join(", ")}"
+      if payload_metadata
+        payload_metadata.keys.each do |metadata_key|
+          unless allowed_meta_tags.include?(metadata_key)
+            raise Nomade::DispatchUnknownMetaData.new("Dispatch job does not allow #{metadata_key} to be set!")
+          end
+        end
+      end
+
+      case payload
+      when "optional", ""
+        @logger.info "Expectation for Payload is: optional"
+      when "required"
+        @logger.info "Expectation for Payload is: required"
+
+        unless payload_data
+          raise Nomade::DispatchMissingPayload.new("Dispatch job expects payload_data, but we don't supply any!")
+        end
+      when "forbidden"
+        @logger.info "Expectation for Payload is: forbidden"
+
+        if payload_data
+          raise Nomade::DispatchPayloadNotAllowed.new("Dispatch job do not allow payload_data!")
+        end
+      else
+        raise Nomade::DispatchPayloadUnknown.new("Invalid value for [\"ParameterizedJob\"][\"Payload\"] = #{payload}")
+      end
+
+      @logger.info "Checking cluster for connectivity and capacity.."
+      plan_data = @http.plan_job(@nomad_job)
+
+      dispatch_job = @http.dispatch_job(@nomad_job, payload_data: payload_data, payload_metadata: payload_metadata)
+      @evaluation_id = dispatch_job["EvalID"]
+
+      @logger.info "Waiting until allocations are no longer pending"
+      allocations = []
+      until allocations.any? && allocations.all?{|a| a["ClientStatus"] != "pending"}
+        @logger.info "."
+        sleep(2)
+        allocations = @http.allocations_from_evaluation_request(@evaluation_id)
+      end
+
+      batch_deploy
     end
 
     def service_deploy
