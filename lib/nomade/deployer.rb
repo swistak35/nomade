@@ -62,6 +62,8 @@ module Nomade
     end
 
     def deploy!
+      check_for_job_init
+
       run_hooks(Nomade::Hooks::DEPLOY_RUNNING, @nomad_job, nil)
       _plan
       _deploy
@@ -90,6 +92,12 @@ module Nomade
     end
 
     private
+
+    def check_for_job_init
+      unless @nomad_job
+        raise Nomade::GeneralError.new("Did you forget to run init_job?")
+      end
+    end
 
     def run_hooks(hook, job, messages)
       @hooks[hook].each do |hook_method|
