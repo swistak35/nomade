@@ -154,6 +154,23 @@ module Nomade
       raise
     end
 
+    def dispatch_job(nomad_job, payload_data: nil, payload_metadata: nil)
+      if payload_metadata.class == Array && payload_metadata.empty?
+        payload_metadata = nil
+      end
+
+      req_body = JSON.generate({
+        "Payload": payload_data,
+        "Meta": payload_metadata,
+      }.delete_if { |k, v| v.nil? })
+
+      res_body = _request(:post, "/v1/job/#{nomad_job.job_name}/dispatch", body: req_body)
+      JSON.parse(res_body)
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
     private
 
     def _request(request_type, path, body: nil, total_retries: 0, expected_content_type: "application/json")
