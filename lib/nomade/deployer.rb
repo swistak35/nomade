@@ -14,9 +14,19 @@ module Nomade
         Nomade::Hooks::DEPLOY_RUNNING => [],
         Nomade::Hooks::DEPLOY_FINISHED => [],
         Nomade::Hooks::DEPLOY_FAILED => [],
+
+        Nomade::Hooks::DISPATCH_RUNNING => [],
+        Nomade::Hooks::DISPATCH_FINISHED => [],
+        Nomade::Hooks::DISPATCH_FAILED => [],
       }
       add_hook(Nomade::Hooks::DEPLOY_FAILED, lambda {|hook_type, nomad_job, messages|
         @logger.error "Failing deploy:"
+        messages.each do |message|
+          @logger.error "- #{message}"
+        end
+      })
+      add_hook(Nomade::Hooks::DISPATCH_FAILED, lambda {|hook_type, nomad_job, messages|
+        @logger.error "Failing dispatch:"
         messages.each do |message|
           @logger.error "- #{message}"
         end
@@ -40,6 +50,12 @@ module Nomade
         @hooks[Nomade::Hooks::DEPLOY_FINISHED] << hook_method
       elsif Nomade::Hooks::DEPLOY_FAILED == hook
         @hooks[Nomade::Hooks::DEPLOY_FAILED] << hook_method
+      elsif Nomade::Hooks::DISPATCH_RUNNING == hook
+        @hooks[Nomade::Hooks::DISPATCH_RUNNING] << hook_method
+      elsif Nomade::Hooks::DISPATCH_FINISHED == hook
+        @hooks[Nomade::Hooks::DISPATCH_FINISHED] << hook_method
+      elsif Nomade::Hooks::DISPATCH_FAILED == hook
+        @hooks[Nomade::Hooks::DISPATCH_FAILED] << hook_method
       else
         raise "#{hook} not supported!"
       end
