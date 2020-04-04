@@ -283,7 +283,10 @@ module Nomade
     end
 
     def _dispatch(payload_data, payload_metadata)
-      @logger.info "Running sanity checks"
+      @logger.info "Dispatching #{@nomad_job.job_name} (#{@nomad_job.job_type}) with #{@nomad_job.image_name_and_version}"
+      @logger.info "URL: #{@nomad_endpoint}/ui/jobs/#{@nomad_job.job_name}"
+
+      @logger.info "Running sanity checks.."
 
       if @nomad_job.job_type != "batch"
         raise DispatchWrongJobType.new("Job-type for #{@nomad_job.job_name} is \"#{@nomad_job.job_type}\" but should be \"batch\"")
