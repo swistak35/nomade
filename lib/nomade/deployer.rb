@@ -151,8 +151,8 @@ module Nomade
         end
 
         @logger.info "Waiting until allocations are no longer pending"
-        allocations = @http.allocations_from_evaluation_request(@evaluation_id)
-        until allocations.all?{|a| a["ClientStatus"] != "pending"}
+        allocations = []
+        until allocations.any? && allocations.all?{|a| a["ClientStatus"] != "pending"}
           @logger.info "."
           sleep(2)
           allocations = @http.allocations_from_evaluation_request(@evaluation_id)
