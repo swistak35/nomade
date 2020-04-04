@@ -27,4 +27,8 @@ module Nomade
   class DispatchMissingPayload < StandardError; end
   class DispatchPayloadNotAllowed < StandardError; end
   class DispatchPayloadUnknown < StandardError; end
+
+  class HttpConnectionError < StandardError; end
+  class HttpBadResponse < StandardError; end
+  class HttpBadContentType < StandardError; end
 end
