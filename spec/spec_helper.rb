@@ -113,6 +113,10 @@ rescue StandardError => e
   raise
 end
 
+def nomad_endpoint
+  "http://nomadserver.vpn.kaspergrubbe.com:4646"
+end
+
 def default_job_vars
   Proc.new do
     {
