@@ -43,6 +43,15 @@ module Nomade
       @deployment_id = nil
 
       self
+    rescue Nomade::HttpConnectionError => e
+      [e.class.to_s, e.message, "Http connection error, exiting!"].compact.uniq.map{|l| @logger.error(l)}
+      exit(7)
+    rescue Nomade::HttpBadResponse => e
+      [e.class.to_s, e.message, "Http bad response, exiting!"].compact.uniq.map{|l| @logger.error(l)}
+      exit(8)
+    rescue Nomade::HttpBadContentType => e
+      [e.class.to_s, e.message, "Http unexpected content type!"].compact.uniq.map{|l| @logger.error(l)}
+      exit(9)
     end
 
     def add_hook(hook, hook_method)
@@ -87,6 +96,15 @@ module Nomade
     rescue Nomade::DeploymentFailedError => e
       run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Couldn't deploy succesfully, exiting!"].compact.uniq)
       exit(6)
+    rescue Nomade::HttpConnectionError => e
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Http connection error, exiting!"].compact.uniq)
+      exit(7)
+    rescue Nomade::HttpBadResponse => e
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Http bad response, exiting!"].compact.uniq)
+      exit(8)
+    rescue Nomade::HttpBadContentType => e
+      run_hooks(Nomade::Hooks::DEPLOY_FAILED, @nomad_job, [e.class.to_s, e.message, "Http unexpected content type!"].compact.uniq)
+      exit(9)
     end
 
     def dispatch!(payload_data: nil, payload_metadata: {})
@@ -125,6 +143,15 @@ module Nomade
     rescue Nomade::GeneralError => e
       run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "GeneralError hit, exiting!"].compact.uniq)
       exit(1)
+    rescue Nomade::HttpConnectionError => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Http connection error, exiting!"].compact.uniq)
+      exit(7)
+    rescue Nomade::HttpBadResponse => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Http bad response, exiting!"].compact.uniq)
+      exit(8)
+    rescue Nomade::HttpBadContentType => e
+      run_hooks(Nomade::Hooks::DISPATCH_FAILED, @nomad_job, [e.class.to_s, e.message, "Http unexpected content type!"].compact.uniq)
+      exit(9)
     end
 
     def stop!(purge = false)
