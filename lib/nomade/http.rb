@@ -177,6 +177,11 @@ module Nomade
       uri = URI("#{@nomad_endpoint}#{path}")
 
       http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 10
+      http.write_timeout = 10
+      http.ssl_timeout = 10
+
       if @nomad_endpoint.include?("https://")
         http.use_ssl = true
         http.verify_mode = OpenSSL::SSL::VERIFY_PEER
