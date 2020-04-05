@@ -42,7 +42,7 @@ RSpec.describe "Parameterized jobs", order: :defined do
       end
     end
 
-    it "should raise with metadata not defined in job-file" do
+    it "should raise on unexpected metadata not defined in job-file" do
       expect {
         @deployer.dispatch!(payload_metadata: {
           "SLEEP_TIME" => "10",
