@@ -56,7 +56,13 @@ RSpec.describe "Parameterized jobs", order: :defined do
 
   context "payload input validation" do
     before(:all) do
-      @deployer_required = Nomade::Deployer.new(nomad_endpoint)
+      @logfile = Tempfile.new('nomadetest')
+      yell = Yell.new do |l|
+        l.adapter STDOUT, level: [:debug, :info, :warn]
+        l.adapter STDERR, level: [:error, :fatal]
+        l.adapter :file, @logfile.path
+      end
+      @deployer_required = Nomade::Deployer.new(nomad_endpoint, logger: yell)
       @deployer_required.init_job("spec/jobfiles/parameterized_required_payload_job.hcl.erb", "debian:buster", default_job_vars.call)
 
       @deployer_forbidden = Nomade::Deployer.new(nomad_endpoint)
@@ -64,6 +70,9 @@ RSpec.describe "Parameterized jobs", order: :defined do
     end
 
     after(:all) do
+      @logfile.close
+      @logfile.unlink
+
       expect {
         @deployer_required.stop!(true)
       }.not_to raise_error
@@ -89,6 +98,8 @@ RSpec.describe "Parameterized jobs", order: :defined do
       expect {
         @deployer_required.dispatch!(payload_data: "BLARGHMASTER!")
       }.not_to raise_error
+
+      expect(@logfile.readlines.last).to end_with("Hello, BLARGHMASTER!\n")
     end
 
     it "should raise when payload is required but not sent" do

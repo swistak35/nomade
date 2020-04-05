@@ -1,6 +1,8 @@
 require 'bundler/setup'
 Bundler.setup
 
+require 'tempfile'
+
 require 'simplecov'
 SimpleCov.start do
   add_filter %r{^/spec/}
