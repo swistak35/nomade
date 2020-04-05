@@ -11,8 +11,6 @@ RSpec.describe "Parameterized jobs", order: :defined do
       expect {
         @deployer.stop!(true)
       }.not_to raise_error
-
-      # Allow Nomad to clean up
       sleep(5)
     end
 
@@ -74,7 +72,6 @@ RSpec.describe "Parameterized jobs", order: :defined do
         @deployer_forbidden.stop!(true)
       }.not_to raise_error
 
-      # Allow Nomad to clean up
       sleep(5)
     end
 
@@ -121,8 +118,6 @@ RSpec.describe "Parameterized jobs", order: :defined do
       expect {
         @deployer.stop!(true)
       }.not_to raise_error
-
-      # Allow Nomad to clean up
       sleep(5)
     end
 
@@ -132,7 +127,7 @@ RSpec.describe "Parameterized jobs", order: :defined do
       }.not_to raise_error
     end
 
-    it "should allow payload to be set" do
+    it "should allow dispatch with payload set to be run" do
       expect {
         @deployer.dispatch!(payload_data: "BLARGHMASTER!")
       }.not_to raise_error
@@ -149,18 +144,16 @@ RSpec.describe "Parameterized jobs", order: :defined do
       expect {
         @deployer.stop!(true)
       }.not_to raise_error
-
-      # Allow Nomad to clean up
       sleep(5)
     end
 
-    it "should register parameterized job" do
+    it "should register non-parameterized job" do
       expect {
         @deployer.deploy!
       }.not_to raise_error
     end
 
-    it "should allow payload to be set" do
+    it "should not allow dispatch on a non-parameterized job" do
       expect {
         @deployer.dispatch!(payload_data: "BLARGHMASTER!")
       }.to raise_error(SystemExit) do |error|
