@@ -6,10 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+## Changed
+- Silencing Nomade is now controlled with an environment variable `QUIET_NOMADE` with a value of `"1"`, e.g: `QUIET_NOMADE=1 ruby deploy.rb`, this was earlier done with a flag like `-q`.
 
 ## [0.1.4] - 6/4/2020
-
 - Tweaked HTTP timeouts a bit so we fail faster.
 - Made unique exceptions for network errors that we can catch.
 - Added support for deploying and running parameterized jobs.

@@ -10,7 +10,7 @@ module Nomade
       end
 
       Yell.new do |l|
-        unless ARGV.include?("-q")
+        unless ENV["QUIET_NOMADE"] == "1"
           l.adapter STDOUT, level: stdout
           l.adapter STDERR, level: [:error, :fatal]
         end

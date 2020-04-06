@@ -58,8 +58,10 @@ RSpec.describe "Parameterized jobs", order: :defined do
     before(:all) do
       @logfile = Tempfile.new('nomadetest')
       yell = Yell.new do |l|
-        l.adapter STDOUT, level: [:debug, :info, :warn]
-        l.adapter STDERR, level: [:error, :fatal]
+        unless ENV["QUIET_NOMADE"] == "1"
+          l.adapter STDOUT, level: [:debug, :info, :warn]
+          l.adapter STDERR, level: [:error, :fatal]
+        end
         l.adapter :file, @logfile.path
       end
       @deployer_required = Nomade::Deployer.new(nomad_endpoint, logger: yell)
