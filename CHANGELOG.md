@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Added
+- Added a `testsuite.sh`-script that tests Nomade in Ruby MRI version `2.4.10`, `2.5.8`, `2.6.6` and `2.7.1`.
+
 ## Changed
 - Silencing Nomade is now controlled with an environment variable `QUIET_NOMADE` with a value of `"1"`, e.g: `QUIET_NOMADE=1 ruby deploy.rb`, this was earlier done with a flag like `-q`.
 
