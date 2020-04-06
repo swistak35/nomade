@@ -155,8 +155,8 @@ module Nomade
     end
 
     def dispatch_job(nomad_job, payload_data: nil, payload_metadata: nil)
-      if payload_metadata.class == Array && payload_metadata.empty?
-        payload_metadata = nil
+      if payload_metadata.class != Hash
+        raise DispatchMetaDataFormattingError.new("Expected #{payload_metadata} to be a Hash, but received #{payload_metadata.class}")
       end
 
       req_body = JSON.generate({

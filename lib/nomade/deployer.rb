@@ -303,7 +303,7 @@ module Nomade
       end
 
       payload_metadata = if payload_metadata == nil
-        []
+        {}
       else
         Hash[payload_metadata.collect{|k,v| [k.to_s, v]}]
         payload_metadata.each do |key, value|
@@ -320,7 +320,7 @@ module Nomade
       if meta_required
         @logger.info "Dispatch job expects the following metakeys: #{meta_required.join(", ")}"
         meta_required.each do |required_key|
-          unless payload_metadata.include?(required_key)
+          unless payload_metadata.keys.include?(required_key)
             raise Nomade::DispatchMissingMetaData.new("Dispatch job expects metakey #{required_key} but it was not set")
           end
         end
