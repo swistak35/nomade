@@ -204,91 +204,102 @@ RSpec.describe "Parameterized jobs", order: :defined do
   end
 
   context "hooks" do
-    it "on success" do
-      @deployer = Nomade::Deployer.new(nomad_endpoint)
+    context "on success" do
+      before(:all) do
+        @deployer = Nomade::Deployer.new(nomad_endpoint)
+      end
 
-      $parameterized_start_arr = []
-      $parameterized_success_arr = []
-      $parameterized_fail_arr = []
+      after(:all) do
+        expect {
+          @deployer.stop!(true)
+          sleep(5)
+        }.not_to raise_error
+      end
 
-      dispatch_start = Proc.new { |hook_type, nomad_job, messages|
-        $parameterized_start_arr << [hook_type, nomad_job, messages]
-      }
+      it "should run hooks" do
+        $parameterized_start_arr = []
+        $parameterized_success_arr = []
+        $parameterized_fail_arr = []
 
-      dispatch_succesful = Proc.new { |hook_type, nomad_job, messages|
-        $parameterized_success_arr << [hook_type, nomad_job, messages]
-      }
+        dispatch_start = Proc.new { |hook_type, nomad_job, messages|
+          $parameterized_start_arr << [hook_type, nomad_job, messages]
+        }
 
-      dispatch_failure = lambda { |hook_type, nomad_job, messages|
-        $parameterized_fail_arr << [hook_type, nomad_job, messages]
-      }
+        dispatch_succesful = Proc.new { |hook_type, nomad_job, messages|
+          $parameterized_success_arr << [hook_type, nomad_job, messages]
+        }
 
-      @deployer.add_hook(Nomade::Hooks::DISPATCH_RUNNING, dispatch_start)
-      @deployer.add_hook(Nomade::Hooks::DISPATCH_FINISHED, dispatch_succesful)
-      @deployer.add_hook(Nomade::Hooks::DISPATCH_FAILED, dispatch_failure)
+        dispatch_failure = lambda { |hook_type, nomad_job, messages|
+          $parameterized_fail_arr << [hook_type, nomad_job, messages]
+        }
 
-      @deployer.init_job("spec/jobfiles/parameterized_job.hcl.erb", "debian:buster", default_job_vars.call)
-      @deployer.deploy!
+        @deployer.add_hook(Nomade::Hooks::DISPATCH_RUNNING, dispatch_start)
+        @deployer.add_hook(Nomade::Hooks::DISPATCH_FINISHED, dispatch_succesful)
+        @deployer.add_hook(Nomade::Hooks::DISPATCH_FAILED, dispatch_failure)
 
-      expect {
-        @deployer.dispatch!(payload_metadata: {"SLEEP_TIME" => "2"})
-      }.not_to raise_error
+        @deployer.init_job("spec/jobfiles/parameterized_job.hcl.erb", "debian:buster", default_job_vars.call)
+        @deployer.deploy!
 
-      expect($parameterized_start_arr.size).to eq 1
-      expect($parameterized_success_arr.size).to eq 1
-      expect($parameterized_fail_arr.size).to eq 0
+        expect {
+          @deployer.dispatch!(payload_metadata: {"SLEEP_TIME" => "2"})
+        }.not_to raise_error
 
-      expect($parameterized_start_arr.first[0]).to eq Nomade::Hooks::DISPATCH_RUNNING
-      expect($parameterized_success_arr.first[0]).to eq Nomade::Hooks::DISPATCH_FINISHED
-    ensure
-      expect {
-        @deployer.stop!(true)
-        sleep(5)
-      }.not_to raise_error
+        expect($parameterized_start_arr.size).to eq 1
+        expect($parameterized_success_arr.size).to eq 1
+        expect($parameterized_fail_arr.size).to eq 0
+
+        expect($parameterized_start_arr.first[0]).to eq Nomade::Hooks::DISPATCH_RUNNING
+        expect($parameterized_success_arr.first[0]).to eq Nomade::Hooks::DISPATCH_FINISHED
+      end
     end
 
-    it "on failure" do
-      @deployer = Nomade::Deployer.new(nomad_endpoint)
+    context "on failure" do
+      before(:all) do
+        @deployer = Nomade::Deployer.new(nomad_endpoint)
+      end
 
-      $parameterized_start_arr = []
-      $parameterized_success_arr = []
-      $parameterized_fail_arr = []
+      after(:all) do
+        expect {
+          @deployer.stop!(true)
+          sleep(5)
+        }.not_to raise_error
+      end
 
-      dispatch_start = Proc.new { |hook_type, nomad_job, messages|
-        $parameterized_start_arr << [hook_type, nomad_job, messages]
-      }
+      it "should run hooks" do
+        $parameterized_start_arr = []
+        $parameterized_success_arr = []
+        $parameterized_fail_arr = []
 
-      dispatch_succesful = Proc.new { |hook_type, nomad_job, messages|
-        $parameterized_success_arr << [hook_type, nomad_job, messages]
-      }
+        dispatch_start = Proc.new { |hook_type, nomad_job, messages|
+          $parameterized_start_arr << [hook_type, nomad_job, messages]
+        }
 
-      dispatch_failure = lambda { |hook_type, nomad_job, messages|
-        $parameterized_fail_arr << [hook_type, nomad_job, messages]
-      }
+        dispatch_succesful = Proc.new { |hook_type, nomad_job, messages|
+          $parameterized_success_arr << [hook_type, nomad_job, messages]
+        }
 
-      @deployer.add_hook(Nomade::Hooks::DISPATCH_RUNNING, dispatch_start)
-      @deployer.add_hook(Nomade::Hooks::DISPATCH_FINISHED, dispatch_succesful)
-      @deployer.add_hook(Nomade::Hooks::DISPATCH_FAILED, dispatch_failure)
+        dispatch_failure = lambda { |hook_type, nomad_job, messages|
+          $parameterized_fail_arr << [hook_type, nomad_job, messages]
+        }
 
-      @deployer.init_job("spec/jobfiles/parameterized_job.hcl.erb", "debian:buster", default_job_vars.call)
-      @deployer.deploy!
+        @deployer.add_hook(Nomade::Hooks::DISPATCH_RUNNING, dispatch_start)
+        @deployer.add_hook(Nomade::Hooks::DISPATCH_FINISHED, dispatch_succesful)
+        @deployer.add_hook(Nomade::Hooks::DISPATCH_FAILED, dispatch_failure)
 
-      expect {
-        @deployer.dispatch!
-      }.to raise_error(SystemExit)
+        @deployer.init_job("spec/jobfiles/parameterized_job.hcl.erb", "debian:buster", default_job_vars.call)
+        @deployer.deploy!
 
-      expect($parameterized_start_arr.size).to eq 1
-      expect($parameterized_success_arr.size).to eq 0
-      expect($parameterized_fail_arr.size).to eq 1
+        expect {
+          @deployer.dispatch!
+        }.to raise_error(SystemExit)
 
-      expect($parameterized_start_arr.first[0]).to eq Nomade::Hooks::DISPATCH_RUNNING
-      expect($parameterized_fail_arr.first[0]).to eq Nomade::Hooks::DISPATCH_FAILED
-    ensure
-      expect {
-        @deployer.stop!(true)
-        sleep(5)
-      }.not_to raise_error
+        expect($parameterized_start_arr.size).to eq 1
+        expect($parameterized_success_arr.size).to eq 0
+        expect($parameterized_fail_arr.size).to eq 1
+
+        expect($parameterized_start_arr.first[0]).to eq Nomade::Hooks::DISPATCH_RUNNING
+        expect($parameterized_fail_arr.first[0]).to eq Nomade::Hooks::DISPATCH_FAILED
+      end
     end
-
   end
 end
