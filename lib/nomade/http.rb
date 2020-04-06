@@ -179,7 +179,7 @@ module Nomade
       http = Net::HTTP.new(uri.host, uri.port)
       http.open_timeout = 10
       http.read_timeout = 10
-      http.write_timeout = 10
+      http.write_timeout = 10 if Net::HTTP.method_defined?(:write_timeout)
       http.ssl_timeout = 10
 
       if @nomad_endpoint.include?("https://")

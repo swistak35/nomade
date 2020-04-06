@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## Fixed
+- Fixed an issue where version `0.1.4` wouldn't run on Ruby `2.4`.
+
 ## Added
 - Added a `testsuite.sh`-script that tests Nomade in Ruby MRI version `2.4.10`, `2.5.8`, `2.6.6` and `2.7.1`.
 
