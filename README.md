@@ -25,6 +25,7 @@ environment = {
 
 image_name = "kaspergrubbe/clusterapp:0.0.11"
 
+# Services:
 deployer = Nomade::Deployer.new("https://kg.nomadserver.com")
 deployer.init_job('templates/clusterapp-batch.nomad.hcl.erb', image_name, environment)
 deployer.deploy!
@@ -32,9 +33,15 @@ deployer.deploy!
 deployer = Nomade::Deployer.new("https://kg.nomadserver.com:7001")
 deployer.init_job('templates/clusterapp.nomad.hcl.erb', image_name, environment)
 deployer.deploy!
+
+# Parameterized job:
+deployer = Nomade::Deployer.new("https://kg.nomadserver.com:7001")
+deployer.init_job('templates/parameterized.nomad.hcl.erb', image_name, environment)
+deployer.deploy!
+deployer.dispatch!(payload_data: "BLARGH", payload_metadata: {"META" => "W00P"})
 ```
 
-## Hooks
+## Hooks for services
 
 Let's say you want to implement hooks for the deployment, you can do it like this:
 
@@ -59,4 +66,31 @@ deployer.add_hook(Nomade::Hooks::DEPLOY_RUNNING, deploy_start)
 deployer.add_hook(Nomade::Hooks::DEPLOY_FINISHED, deploy_succesful)
 deployer.add_hook(Nomade::Hooks::DEPLOY_FAILED, deploy_failed)
 deployer.deploy!
+```
+
+
+## Hooks for parameterized jobs
+
+```ruby
+require 'nomade'
+
+dispatch_start = lambda { |hook_type, nomad_job, messages|
+  puts "Starting dispatch #{nomad_job.image_name_and_version}"
+}
+
+dispatch_succesful = lambda { |hook_type, nomad_job, messages|
+  puts "Succesfully dispatched #{nomad_job.image_name_and_version}"
+}
+
+dispatch_failed = lambda { |hook_type, nomad_job, messages|
+  puts "Failed dispatch #{nomad_job.image_name_and_version}"
+}
+
+deployer = Nomade::Deployer.new("https://kg.nomadserver.com:7001")
+deployer.init_job('templates/parameterized.nomad.hcl.erb', image_name, environment)
+deployer.add_hook(Nomade::Hooks::DISPATCH_RUNNING, dispatch_start)
+deployer.add_hook(Nomade::Hooks::DISPATCH_FINISHED, dispatch_succesful)
+deployer.add_hook(Nomade::Hooks::DISPATCH_FAILED, dispatch_failed)
+deployer.deploy!
+deployer.dispatch!(payload_data: "BLARGH", payload_metadata: {"META" => "W00P"})
 ```

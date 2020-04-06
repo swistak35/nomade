@@ -4,7 +4,6 @@ RSpec.describe Nomade do
   it "should deploy" do
     template_variables = default_job_vars.call
 
-    nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
     image_name = "stefanscherer/whoami:2.0.0"
 
     # First deploy for the first time
@@ -49,7 +48,6 @@ RSpec.describe Nomade do
   end
 
   it "should rollback if deploy is unhealthy" do
-    nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
     image_name = "stefanscherer/whoami:2.0.0"
 
     # First deploy for the first time

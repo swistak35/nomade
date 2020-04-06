@@ -154,12 +154,34 @@ module Nomade
       raise
     end
 
+    def dispatch_job(nomad_job, payload_data: nil, payload_metadata: nil)
+      if payload_metadata.class != Hash
+        raise DispatchMetaDataFormattingError.new("Expected #{payload_metadata} to be a Hash, but received #{payload_metadata.class}")
+      end
+
+      req_body = JSON.generate({
+        "Payload": payload_data,
+        "Meta": payload_metadata,
+      }.delete_if { |k, v| v.nil? })
+
+      res_body = _request(:post, "/v1/job/#{nomad_job.job_name}/dispatch", body: req_body)
+      JSON.parse(res_body)
+    rescue StandardError => e
+      Nomade.logger.fatal "HTTP Request failed (#{e.message})"
+      raise
+    end
+
     private
 
     def _request(request_type, path, body: nil, total_retries: 0, expected_content_type: "application/json")
       uri = URI("#{@nomad_endpoint}#{path}")
 
       http = Net::HTTP.new(uri.host, uri.port)
+      http.open_timeout = 10
+      http.read_timeout = 10
+      http.write_timeout = 10
+      http.ssl_timeout = 10
+
       if @nomad_endpoint.include?("https://")
         http.use_ssl = true
         http.verify_mode = OpenSSL::SSL::VERIFY_PEER
@@ -181,24 +203,27 @@ module Nomade
       res = begin
         retries ||= 0
         http.request(req)
-      rescue Timeout::Error, Errno::ETIMEDOUT, Errno::EINVAL, Errno::ECONNRESET, EOFError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError, SocketError
+      rescue Timeout::Error, Errno::ETIMEDOUT, Errno::EINVAL, Errno::ECONNRESET, EOFError, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError, SocketError => e
         if retries < total_retries
           retries += 1
           sleep 1
           retry
         else
-          raise
+          raise HttpConnectionError.new("#{e.class.to_s} - #{e.message}")
         end
       end
 
-      raise if res.code != "200"
+      if res.code != "200"
+        raise HttpBadResponse.new("Bad response (not 200) but #{res.code}: #{res.body}")
+      end
+
       if res.content_type != expected_content_type
         # Sometimes the log endpoint doesn't set content_type on no content
         # https://github.com/hashicorp/nomad/issues/7264
         if res.content_type == nil && expected_content_type == "text/plain"
           # don't raise
         else
-          raise
+          raise HttpBadContentType.new("Expected #{expected_content_type} but got #{res.content_type}")
         end
       end
 

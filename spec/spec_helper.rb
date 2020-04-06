@@ -1,6 +1,8 @@
 require 'bundler/setup'
 Bundler.setup
 
+require 'tempfile'
+
 require 'simplecov'
 SimpleCov.start do
   add_filter %r{^/spec/}
@@ -111,6 +113,10 @@ def job_versions(endpoint, nomad_job_name)
 rescue StandardError => e
   Nomade.logger.fatal "HTTP Request failed (#{e.message})"
   raise
+end
+
+def nomad_endpoint
+  "http://nomadserver.vpn.kaspergrubbe.com:4646"
 end
 
 def default_job_vars

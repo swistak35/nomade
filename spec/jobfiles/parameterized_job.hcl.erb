@@ -1,0 +1,35 @@
+job "paramsleep" {
+  datacenters = ["<%= template_variables[:datacenter] %>"]
+
+  type = "batch"
+  parameterized {
+    meta_required = ["SLEEP_TIME"]
+    meta_optional = ["FIRST_NAME", "LAST_NAME"]
+  }
+
+  group "program" {
+    count = 1
+
+    ephemeral_disk {
+      size = 300
+    }
+
+    task "sleep" {
+      driver = "docker"
+
+      config {
+        image = "<%= image_name_and_version %>"
+        command = "sleep"
+        args = ["${NOMAD_META_SLEEP_TIME}"]
+      }
+
+      resources {
+        cpu    = 500 # 500 MHz
+        memory = 256 # 256MB
+        network {
+          mbits = 10
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+job "defaultpayload" {
+  datacenters = ["<%= template_variables[:datacenter] %>"]
+
+  type = "batch"
+
+  task "hi" {
+    driver = "docker"
+
+    config {
+      image = "<%= image_name_and_version %>"
+
+      command = "echo"
+      args = [
+        "blargh",
+      ]
+    }
+
+    resources {
+      cpu    = 500 # 500 MHz
+      memory = 256 # 256MB
+    }
+  }
+}
+

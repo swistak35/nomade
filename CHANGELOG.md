@@ -6,7 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+- Tweaked HTTP timeouts a bit so we fail faster.
+- Made unique exceptions for network errors that we can catch.
+- Added support for deploying and running parameterized jobs.
 
 ## [0.1.3] - 25/3/2020
 - Make timeout configurable

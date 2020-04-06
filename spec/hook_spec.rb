@@ -1,7 +1,6 @@
 RSpec.describe "Deploy hooks" do
   context "for services" do
     it "should run deploy hooks on succesful deploy" do
-      nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
       image_name = "stefanscherer/whoami:2.0.0"
 
       $start_proc_arr01 = []
@@ -57,7 +56,6 @@ RSpec.describe "Deploy hooks" do
     end
 
     it "should run deploy hooks on a failed deploy" do
-      nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
       image_name = "stefanscherer/whoami:2.0.0"
 
       $start_proc_arr = []
@@ -108,7 +106,6 @@ RSpec.describe "Deploy hooks" do
 
   context "for batch-jobs" do
     it "should run deploy hooks on succesful deploy" do
-      nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
       image_name = "ubuntu:18.04"
 
       $start_proc_arr01 = []
@@ -164,7 +161,6 @@ RSpec.describe "Deploy hooks" do
     end
 
     it "should run deploy hooks on a failed deploy" do
-      nomad_endpoint = "http://nomadserver.vpn.kaspergrubbe.com:4646"
       image_name = "ubuntu:18.04"
 
       $start_proc_arr = []

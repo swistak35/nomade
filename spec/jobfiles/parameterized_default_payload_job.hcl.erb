@@ -1,0 +1,28 @@
+job "defaultpayload" {
+  datacenters = ["<%= template_variables[:datacenter] %>"]
+
+  type = "batch"
+
+  parameterized {
+  }
+
+  task "hi" {
+    driver = "docker"
+
+    config {
+      image = "<%= image_name_and_version %>"
+
+      command = "bash"
+      args = [
+        "-c",
+        "echo \"Hello, $(cat ${NOMAD_TASK_DIR}/message.txt)\"; sleep 5",
+      ]
+    }
+
+    resources {
+      cpu    = 500 # 500 MHz
+      memory = 256 # 256MB
+    }
+  }
+}
+
