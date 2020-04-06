@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+N/A
+
+## [0.1.5] - 6/4/2020
+
 ## Fixed
 - Fixed an issue where version `0.1.4` wouldn't run on Ruby `2.4`.
 
