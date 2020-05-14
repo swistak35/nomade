@@ -2,6 +2,14 @@
 
 Nomad from https://www.nomadproject.io/
 
+## Lingering
+
+By default this gem will linger randomly between 8 and 28 seconds before promoting an allocation, you can tweak this by supplying a range argument:
+
+```ruby
+Nomade::Deployer.new(nomad_endpoint, linger: 10..120)
+```
+
 ## Example:
 
 ```ruby
@@ -67,7 +75,6 @@ deployer.add_hook(Nomade::Hooks::DEPLOY_FINISHED, deploy_succesful)
 deployer.add_hook(Nomade::Hooks::DEPLOY_FAILED, deploy_failed)
 deployer.deploy!
 ```
-
 
 ## Hooks for parameterized jobs
 

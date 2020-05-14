@@ -12,6 +12,9 @@ module Nomade
 
       @timeout = opts.fetch(:timeout, 60 * 3)
 
+      @linger = opts.fetch(:linger, 8..28)
+      raise GeneralError.new("Linger needs to be a range, supplied with: #{@linger.class}") unless @linger.class == Range
+
       @hooks = {
         Nomade::Hooks::DEPLOY_RUNNING => [],
         Nomade::Hooks::DEPLOY_FINISHED => [],
@@ -435,7 +438,7 @@ module Nomade
 
           if succesful_deployment == nil && json["TaskGroups"].values.all?{|tg| tg["HealthyAllocs"] >= tg["DesiredCanaries"]}
             if !promoted
-              random_linger = rand(8..28)
+              random_linger = rand(@linger)
               @logger.info "Lingering around for #{random_linger} seconds before deployment.."
               sleep(random_linger)
 

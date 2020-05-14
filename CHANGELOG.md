@@ -6,7 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+## Added
+- Lingering is now configurable.
 
 ## [0.1.5] - 6/4/2020
 
