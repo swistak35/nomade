@@ -24,20 +24,18 @@ module Nomade
         Nomade::Hooks::DISPATCH_FINISHED => [],
         Nomade::Hooks::DISPATCH_FAILED => [],
       }
-      add_hook(Nomade::Hooks::DEPLOY_FAILED, lambda {|hook_type, nomad_job, messages|
+      add_hook(Nomade::Hooks::DEPLOY_FAILED, lambda {|_hook_type, _nomad_job, messages|
         @logger.error "Failing deploy:"
         messages.each do |message|
           @logger.error "- #{message}"
         end
       })
-      add_hook(Nomade::Hooks::DISPATCH_FAILED, lambda {|hook_type, nomad_job, messages|
+      add_hook(Nomade::Hooks::DISPATCH_FAILED, lambda {|_hook_type, _nomad_job, messages|
         @logger.error "Failing dispatch:"
         messages.each do |message|
           @logger.error "- #{message}"
         end
       })
-
-      self
     end
 
     def init_job(template_file, image_full_name, template_variables = {})
@@ -158,6 +156,8 @@ module Nomade
     end
 
     def stop!(purge = false)
+      check_for_job_init
+
       @http.stop_job(@nomad_job, purge)
     end
 
@@ -186,7 +186,7 @@ module Nomade
       @logger.info "Checking cluster for connectivity and capacity.."
       plan_data = @http.plan_job(@nomad_job)
 
-      sum_of_changes = plan_data["Annotations"]["DesiredTGUpdates"].map { |group_name, task_group_updates|
+      sum_of_changes = plan_data["Annotations"]["DesiredTGUpdates"].map { |_group_name, task_group_updates|
         task_group_updates["Stop"] +
         task_group_updates["Place"] +
         task_group_updates["Migrate"] +
@@ -359,7 +359,7 @@ module Nomade
       end
 
       @logger.info "Checking cluster for connectivity and capacity.."
-      plan_data = @http.plan_job(@nomad_job)
+      _plan_data = @http.plan_job(@nomad_job)
 
       dispatch_job = @http.dispatch_job(@nomad_job, payload_data: payload_data, payload_metadata: payload_metadata)
       @evaluation_id = dispatch_job["EvalID"]
@@ -401,7 +401,6 @@ module Nomade
 
       announced_completed = []
       promoted = false
-      failed = false
       succesful_deployment = nil
       while(succesful_deployment == nil) do
         json = @http.deployment_request(@deployment_id)
@@ -411,9 +410,9 @@ module Nomade
 
           desired_canaries = task_data["DesiredCanaries"]
           desired_total = task_data["DesiredTotal"]
-          placed_allocations = task_data["PlacedAllocs"]
+          _placed_allocations = task_data["PlacedAllocs"]
           healthy_allocations = task_data["HealthyAllocs"]
-          unhealthy_allocations = task_data["UnhealthyAllocs"]
+          _unhealthy_allocations = task_data["UnhealthyAllocs"]
 
           if manual_work_required
             @logger.info "#{json["ID"]} #{task_name}: #{healthy_allocations}/#{desired_canaries}/#{desired_total} (Healthy/WantedCanaries/Total)"
@@ -507,7 +506,7 @@ module Nomade
 
         tasks           = get_tasks(allocations)
         upcoming_tasks  = get_upcoming_tasks(tasks)
-        succesful_tasks = get_succesful_tasks(tasks)
+        _succesful_tasks = get_succesful_tasks(tasks)
         failed_tasks    = get_failed_tasks(tasks)
 
         if upcoming_tasks.size == 0

@@ -90,7 +90,7 @@ module Nomade
         "DeploymentID" => deployment_id,
         "All" => true,
       }.to_json
-      res_body = _request(:post, "/v1/deployment/promote/#{deployment_id}", body: req_body)
+      _request(:post, "/v1/deployment/promote/#{deployment_id}", body: req_body)
 
       return true
     rescue StandardError => e
@@ -99,7 +99,7 @@ module Nomade
     end
 
     def fail_deployment(deployment_id)
-      res_body = _request(:post, "/v1/deployment/fail/#{deployment_id}")
+      _request(:post, "/v1/deployment/fail/#{deployment_id}")
       return true
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
@@ -125,7 +125,7 @@ module Nomade
       end
 
       true
-    rescue Nomade::FailedTaskGroupPlan => e
+    rescue Nomade::FailedTaskGroupPlan
       raise
     rescue StandardError => e
       Nomade.logger.fatal "HTTP Request failed (#{e.message})"
@@ -162,7 +162,7 @@ module Nomade
       req_body = JSON.generate({
         "Payload": payload_data,
         "Meta": payload_metadata,
-      }.delete_if { |k, v| v.nil? })
+      }.delete_if { |_k, v| v.nil? })
 
       res_body = _request(:post, "/v1/job/#{nomad_job.job_name}/dispatch", body: req_body)
       JSON.parse(res_body)
@@ -197,6 +197,7 @@ module Nomade
       else
         raise "#{request_type} not supported"
       end
+
       req.add_field "Content-Type", "application/json"
       req.body = body if body
 
@@ -209,7 +210,7 @@ module Nomade
           sleep 1
           retry
         else
-          raise HttpConnectionError.new("#{e.class.to_s} - #{e.message}")
+          raise HttpConnectionError.new("#{e.class} - #{e.message}")
         end
       end
 
