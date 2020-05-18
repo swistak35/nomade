@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    nomade (0.1.1)
+    nomade (0.1.6)
       yell (~> 2.2.0)
 
 GEM
@@ -45,4 +45,4 @@ DEPENDENCIES
   simplecov (~> 0.18.5)
 
 BUNDLED WITH
-   1.17.2
+   2.1.4
