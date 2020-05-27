@@ -416,7 +416,7 @@ module Nomade
 
           if manual_work_required
             @logger.info "#{json["ID"]} #{task_name}: #{healthy_allocations}/#{desired_canaries}/#{desired_total} (Healthy/WantedCanaries/Total)"
-            announced_completed << task_name if healthy_allocations == desired_canaries
+            announced_completed << task_name if healthy_allocations == desired_canaries && desired_canaries > 0
           else
             @logger.info "#{json["ID"]} #{task_name}: #{healthy_allocations}/#{desired_total} (Healthy/Total)"
             announced_completed << task_name if healthy_allocations == desired_total
