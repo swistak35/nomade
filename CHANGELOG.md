@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 N/A
 
+## [0.1.7] - 28/5/2020
+
+## Fixed
+- Fixed a race condition with the Nomad API
+
 ## [0.1.6] - 17/5/2020
 
 ## Added
